@@ -11,6 +11,7 @@
 #include <mono/metadata/assembly.h>
 #include <mono/jit/jit.h>
 #include <map>
+#include <unordered_map>
 PreSetup("MQ2Mono");
 PLUGIN_VERSION(0.1);
 
@@ -37,34 +38,38 @@ PLUGIN_VERSION(0.1);
  void InitE3();
  void UnloadE3();
 
+
+ struct mqAppDomainInfo
+ {
+	 //app domain we have created for e3
+	 MonoDomain* m_appDomain=nullptr;
+	 //core.dll information so we can bind to it
+	 MonoAssembly* m_csharpAssembly = nullptr;
+	 MonoImage* m_coreAssemblyImage = nullptr;
+	 MonoClass* m_classInfo = nullptr;
+	 MonoObject* m_classInstance = nullptr;
+	 //methods that we call in C# if they are available
+	 MonoMethod* m_OnPulseMethod = nullptr;
+	 MonoMethod* m_OnWriteChatColor = nullptr;
+	 MonoMethod* m_OnIncomingChat = nullptr;
+	 MonoMethod* m_OnInit = nullptr;
+	 MonoMethod* m_OnUpdateImGui = nullptr;
+	 std::map<std::string, bool> m_IMGUI_OpenWindows;
+	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
+	 std::map<std::string, bool> m_IMGUI_RadioButtonValues;
+	 std::string m_CurrentWindow;
+	 bool m_IMGUI_Open = true;
+	 int m_delayTime = 0;//amount of time in milliseonds that was set by C#
+	 std::chrono::steady_clock::time_point m_delayTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
+ };
+
+ std::map<std::string, mqAppDomainInfo> mqAppDomains;
+ std::map<MonoDomain*, std::string> mqAppDomainPtrToString;
 //to be replaced later with collections of multilpe domains, etc.
 //domains where the code is run
 //root domain to contain app domains
 MonoDomain* _rootDomain;
-//app domain we have created for e3
-MonoDomain* m_E3Domain;
-//core.dll information so we can bind to it
-MonoAssembly* m_csharpAssembly;
-MonoImage* m_coreAssemblyImage;
-MonoClass* m_classInfo;
-MonoObject* m_classInstance;
-//methods that we call in C# if they are available
-MonoMethod* m_OnPulseMethod;
-MonoMethod* m_OnWriteChatColor;
-MonoMethod* m_OnIncomingChat;
-MonoMethod* m_OnInit;
-MonoMethod* m_OnUpdateImGui;
-std::map<std::string, bool> m_IMGUI_OpenWindows;
-std::map<std::string, bool> m_IMGUI_CheckboxValues;
-std::map<std::string, bool> m_IMGUI_RadioButtonValues;
-std::string m_CurrentWindow;
 
-bool m_IMGUI_Open = true;
-
-
-int m_delayTime=0;//amount of time in milliseonds that was set by C#
-std::chrono::steady_clock::time_point m_delayTimer= std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
-//////////
 
 //simple timer to limit puse calls to the .net onpulse.
 static std::chrono::steady_clock::time_point PulseTimer = std::chrono::steady_clock::now() + std::chrono::seconds(5);
@@ -111,74 +116,98 @@ void InitMono()
 
 	initialized = true;
 
-	InitE3();
-	
 }
 void UnloadE3()
 {
-	MonoDomain* domainToUnload = m_E3Domain;
+	std::string appDomainName("E3");
+	 
+	MonoDomain* domainToUnload;
+	//check to see if its registered, if so update ptr
+	if (mqAppDomains.count(appDomainName) > 0)
+	{
+		domainToUnload = mqAppDomains[appDomainName].m_appDomain;
+	}
+	//verify its not the root domain and this is a valid domain pointer
 	if (domainToUnload && domainToUnload != mono_get_root_domain())
 	{
+		mqAppDomains.erase(appDomainName);
+		mqAppDomainPtrToString.erase(domainToUnload);
+
 		mono_domain_set(mono_get_root_domain(), false);
 		//mono_thread_pop_appdomain_ref();
 		mono_domain_unload(domainToUnload);
 	}
-	m_E3Domain = nullptr;
-	m_csharpAssembly = nullptr;
-	m_coreAssemblyImage = nullptr;
-	m_classInfo = nullptr;
-	m_classInstance = nullptr;
-
-	m_OnPulseMethod = nullptr;
-
-	m_OnWriteChatColor = nullptr;
-	m_OnIncomingChat = nullptr;
-	m_OnInit = nullptr;
-	m_OnUpdateImGui = nullptr;
+	
 }
 void InitE3()
 {
+	UnloadE3();
+	std::string appDomainName("E3");
+
+	//app domain we have created for e3
+	MonoDomain* appDomain;
+	appDomain = mono_domain_create_appdomain((char*)appDomainName.c_str() , nullptr);
 	
-	MonoDomain* newDomain = mono_domain_create_appdomain((char*)"E3Runtime", nullptr);
 	
-	// unload 
-	MonoDomain* domainToUnload = m_E3Domain;
-	if (domainToUnload && domainToUnload != mono_get_root_domain())
-	{
-		mono_domain_set(mono_get_root_domain(), false);
-		//mono_thread_pop_appdomain_ref();
-		mono_domain_unload(domainToUnload);
-	}
-	m_E3Domain = newDomain;
+	//core.dll information so we can bind to it
+	MonoAssembly* csharpAssembly;
+	MonoImage* coreAssemblyImage;
+	MonoClass* classInfo;
+	MonoObject* classInstance;
+	//methods that we call in C# if they are available
+	MonoMethod* OnPulseMethod;
+	MonoMethod* OnWriteChatColor;
+	MonoMethod* OnIncomingChat;
+	MonoMethod* OnInit;
+	MonoMethod* OnUpdateImGui;
+	std::map<std::string, bool> IMGUI_OpenWindows;
+
 	//everything below needs to be moved out to a per application run
-	mono_domain_set(m_E3Domain, false);
+	mono_domain_set(appDomain, false);
 
 
-	m_csharpAssembly = mono_domain_assembly_open(m_E3Domain, (monoDir + "\\macros\\test\\Core.dll").c_str());
-	if (!m_csharpAssembly)
+	csharpAssembly = mono_domain_assembly_open(appDomain, (monoDir + "\\macros\\test\\Core.dll").c_str());
+
+	if (!csharpAssembly)
 	{
 		initialized = false;
 		//Error detected
 		return;
 	}
-	m_coreAssemblyImage = mono_assembly_get_image(m_csharpAssembly);
-	m_classInfo = mono_class_from_name(m_coreAssemblyImage, "MonoCore", "Core");
-	m_classInstance = mono_object_new(m_E3Domain, m_classInfo);
+	coreAssemblyImage = mono_assembly_get_image(csharpAssembly);
+	classInfo = mono_class_from_name(coreAssemblyImage, "MonoCore", "Core");
+	classInstance = mono_object_new(appDomain, classInfo);
+	OnPulseMethod = mono_class_get_method_from_name(classInfo, "OnPulse", 0);
+	OnWriteChatColor = mono_class_get_method_from_name(classInfo, "OnWriteChatColor", 1);
+	OnIncomingChat = mono_class_get_method_from_name(classInfo, "OnIncomingChat", 1);
+	OnInit = mono_class_get_method_from_name(classInfo, "OnInit", 0);
+	OnUpdateImGui = mono_class_get_method_from_name(classInfo, "OnUpdateImGui", 0);
 
-	m_OnPulseMethod = mono_class_get_method_from_name(m_classInfo, "OnPulse", 0);
+	//add it to the collection
 
-	m_OnWriteChatColor = mono_class_get_method_from_name(m_classInfo, "OnWriteChatColor", 1);
-	m_OnIncomingChat = mono_class_get_method_from_name(m_classInfo, "OnIncomingChat", 1);
-	m_OnInit = mono_class_get_method_from_name(m_classInfo, "OnInit", 0);
-	m_OnUpdateImGui = mono_class_get_method_from_name(m_classInfo, "OnUpdateImGui", 0);
+	mqAppDomainInfo domainInfo;
+	domainInfo.m_appDomain = appDomain;
+	domainInfo.m_csharpAssembly = csharpAssembly;
+	domainInfo.m_coreAssemblyImage = coreAssemblyImage;
+	domainInfo.m_classInfo = classInfo;
+	domainInfo.m_classInstance = classInstance;
+	domainInfo.m_OnPulseMethod = OnPulseMethod;
+	domainInfo.m_OnWriteChatColor = OnWriteChatColor;
+	domainInfo.m_OnInit = OnInit;
+	domainInfo.m_OnUpdateImGui = OnUpdateImGui;
+
+	
+	mqAppDomains[appDomainName] = domainInfo;
+	mqAppDomainPtrToString[appDomain] = appDomainName;
+
 	//call the Init
-	if (m_OnInit)
+	if (OnInit)
 	{
-		mono_runtime_invoke(m_OnInit, m_classInstance, nullptr, nullptr);
+		mono_runtime_invoke(OnInit, classInstance, nullptr, nullptr);
 	}
 
 	//classConstructor = mono_class_get_method_from_name(m_classInfo, ".ctor", 1);
-
+	
 }
 void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 {
@@ -331,30 +360,31 @@ PLUGIN_API void SetGameState(int GameState)
  */
 PLUGIN_API void OnPulse()
 {	
-	//if we are not in game, kick out no sense running
-	//if (gGameState != GAMESTATE_INGAME) return;
-	// Run only after timer is up
-	if (m_delayTime>0 && std::chrono::steady_clock::now() > m_delayTimer)
+	//for each app domain, lets do processing
+	for (auto i : mqAppDomains)
 	{
-		m_delayTime = 0;
-		//WriteChatf("%s", s_environment->monoDir.c_str());
-		// Wait 5 seconds before running again
-		//PulseTimer = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-		//DebugSpewAlways("MQ2Mono::OnPulse()");
+		//if we are not in game, kick out no sense running
+		//if (gGameState != GAMESTATE_INGAME) return;
+		// Run only after timer is up
+		if (i.second.m_delayTime > 0 && std::chrono::steady_clock::now() > i.second.m_delayTimer)
+		{
+			i.second.m_delayTime = 0;
+			//WriteChatf("%s", s_environment->monoDir.c_str());
+			// Wait 5 seconds before running again
+			//PulseTimer = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+			//DebugSpewAlways("MQ2Mono::OnPulse()");
+		}
+		//we are still in a delay
+		if (i.second.m_delayTime > 0) continue;
+		//WriteChatf("m_delayTime with %d", m_delayTime);
+		//WriteChatf("m_delayTimer with %ld", m_delayTimer);
+		//Call the main method in this code
+		if (i.second.m_appDomain && i.second.m_OnPulseMethod)
+		{
+			mono_domain_set(i.second.m_appDomain, false);
+			mono_runtime_invoke(i.second.m_OnPulseMethod, i.second.m_classInstance, nullptr, nullptr);
+		}
 	}
-	//we are still in a delay
-	if (m_delayTime > 0) return;
-
-	//WriteChatf("m_delayTime with %d", m_delayTime);
-	//WriteChatf("m_delayTimer with %ld", m_delayTimer);
-	//Call the main method in this code
-	if (m_E3Domain && m_OnPulseMethod)
-	{
-		mono_domain_set(m_E3Domain, false);
-		mono_runtime_invoke(m_OnPulseMethod, m_classInstance, nullptr, nullptr);
-	}
-
-
 }
 
 /**
@@ -380,18 +410,18 @@ PLUGIN_API void OnPulse()
 PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
 {
 	return;
-	if (m_E3Domain && m_OnWriteChatColor) {
-		
-		MonoString* monoLine = mono_string_new(m_E3Domain, Line);
-		void* params[1] =
-		{
-			monoLine
-			
-		};
-		mono_domain_set(m_E3Domain, false);
-		mono_runtime_invoke(m_OnWriteChatColor, m_classInstance, params, nullptr);
-		//do not free monoLine as its now part of the GC
-	}
+	//if (m_E3Domain && m_OnWriteChatColor) {
+	//	
+	//	MonoString* monoLine = mono_string_new(m_E3Domain, Line);
+	//	void* params[1] =
+	//	{
+	//		monoLine
+	//		
+	//	};
+	//	mono_domain_set(m_E3Domain, false);
+	//	mono_runtime_invoke(m_OnWriteChatColor, m_classInstance, params, nullptr);
+	//	//do not free monoLine as its now part of the GC
+	//}
 	 //DebugSpewAlways("MQ2Mono::OnWriteChatColor(%s, %d, %d)", Line, Color, Filter);
 }
 
@@ -412,18 +442,20 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
  */
 PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
 {
-	return false;
-	if (m_E3Domain && m_OnIncomingChat) {
-
-		MonoString* monoLine = mono_string_new(m_E3Domain, Line);
-		void* params[1] =
+	for (auto i : mqAppDomains)
+	{
+		//Call the main method in this code
+		if (i.second.m_appDomain && i.second.m_OnIncomingChat)
 		{
-			monoLine
+			MonoString* monoLine = mono_string_new(i.second.m_appDomain, Line);
+			void* params[1] =
+			{
+				monoLine
 
-		};
-		mono_domain_set(m_E3Domain, false);
-		mono_runtime_invoke(m_OnIncomingChat, m_classInstance, params, nullptr);
-		//do not free monoLine as its now part of the GC
+			};
+			mono_domain_set(i.second.m_appDomain, false);
+			mono_runtime_invoke(i.second.m_OnIncomingChat, i.second.m_classInstance, nullptr, nullptr);
+		}
 	}
 	// DebugSpewAlways("MQ2Mono::OnIncomingChat(%s, %d)", Line, Color);
 	return false;
@@ -541,27 +573,16 @@ PLUGIN_API void OnZoned()
  */
 PLUGIN_API void OnUpdateImGui()
 {
-
-	if (m_OnUpdateImGui && GetGameState() == GAMESTATE_INGAME)
+	for (auto i : mqAppDomains)
 	{
-
-
-		mono_domain_set(m_E3Domain, false);
-		mono_runtime_invoke(m_OnUpdateImGui, m_classInstance, nullptr, nullptr);
-		/*if (ShowMQ2MonoWindow)
+		//Call the main method in this code
+		if (i.second.m_appDomain && i.second.m_OnUpdateImGui)
 		{
-			if (ImGui::Begin("MQ2Mono", &ShowMQ2MonoWindow, ImGuiWindowFlags_MenuBar))
-			{
-				if (ImGui::BeginMenuBar())
-				{
-					ImGui::Text("MQ2Mono is loaded!");
-					ImGui::EndMenuBar();
-				}
-			}
-			ImGui::End();
-		}*/
+			mono_domain_set(i.second.m_appDomain, false);
+			mono_runtime_invoke(i.second.m_OnUpdateImGui, i.second.m_classInstance, nullptr, nullptr);
+		}
 	}
-
+	
 }
 
 /**
@@ -632,21 +653,9 @@ PLUGIN_API void OnUnloadPlugin(const char* Name)
 	/// https://github.com/mono/mono/issues/20208
 	/// you can use domain to reload assembly: create domain -> load assembly ->unload domain
 	/// (it can unload assembly within this domain) -> create domain again ->reload assembly
-	/// 
-	/// 
-	/*MonoDomain* newDomain = mono_domain_create_appdomain(MonoDomainName, NULL);
-		mono_domain_set(newDomain, false);
-		// load assembly
-
-		// unload
-		MonoDomain* domainToUnload = mono_domain_get();
-		if (domainToUnload && domainToUnload != mono_get_root_domain())
-		{
-			mono_domain_set(mono_get_root_domain(), false);
-			//mono_thread_pop_appdomain_ref();
-			mono_domain_unload(domainToUnload);
-		}*/
-
+	/// for future me
+	/// mono_jit_cleanup(root_domain);
+	
 
 }
 #pragma region
@@ -657,12 +666,25 @@ static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 	char* cppString = mono_string_to_utf8(name);
 	std::string str(cppString);
 	mono_free(cppString);
-	if (m_IMGUI_OpenWindows.find(str) == m_IMGUI_OpenWindows.end())
+
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (currentDomain)
 	{
-		//key doesn't exist, add it
-		m_IMGUI_OpenWindows[str] = true;
+		std::string key = mqAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto & domainInfo = mqAppDomains[key];
+		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
+		{
+			//key doesn't exist, add it
+			domainInfo.m_IMGUI_OpenWindows[str] = true;
+		}
+		domainInfo.m_IMGUI_OpenWindows[str] = open;
+		//put updates back
+	
 	}
-	m_IMGUI_OpenWindows[str] = open;
+
+	
 
 }
 static boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name)
@@ -670,13 +692,21 @@ static boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name)
 	char* cppString = mono_string_to_utf8(name);
 	std::string str(cppString);
 	mono_free(cppString);
+	MonoDomain* currentDomain = mono_domain_get();
 
-	if (m_IMGUI_OpenWindows.find(str) == m_IMGUI_OpenWindows.end())
+	if (currentDomain)
 	{
-		//key doesn't exist, add it
-		m_IMGUI_OpenWindows[str] = true;
+		std::string key = mqAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = mqAppDomains[key];
+		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
+		{
+			//key doesn't exist, add it
+			domainInfo.m_IMGUI_OpenWindows[str] = true;
+		}
+		return domainInfo.m_IMGUI_OpenWindows[str];
 	}
-	return m_IMGUI_OpenWindows[str];
+	return false;
 
 }
 //define methods exposde to the plugin to be executed
@@ -686,14 +716,24 @@ static bool mono_ImGUI_Begin(MonoString* name, int flags)
 	char* cppString = mono_string_to_utf8(name);
 	std::string str(cppString);
 	mono_free(cppString);
-	m_CurrentWindow = str;
-	if (m_IMGUI_OpenWindows.find(str)== m_IMGUI_OpenWindows.end())
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (currentDomain)
 	{
-		//key doesn't exist, add it
-		m_IMGUI_OpenWindows[str] = true;
+		std::string key = mqAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = mqAppDomains[key];
+
+		domainInfo.m_CurrentWindow = str;
+		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
+		{
+			//key doesn't exist, add it
+			domainInfo.m_IMGUI_OpenWindows[str] = true;
+		}
+
+		return ImGui::Begin(str.c_str(), &domainInfo.m_IMGUI_OpenWindows[str], flags);
 	}
-	
-	return ImGui::Begin(str.c_str(), &m_IMGUI_OpenWindows[str], flags);
+	return false;
 }
 
 
@@ -712,13 +752,18 @@ static void mono_ImGUI_End()
 
 static void mono_Delay(int milliseconds)
 {
-	//do domnain lookup via its pointer
-	m_delayTimer = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
-	m_delayTime = milliseconds;
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = mqAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = mqAppDomains[key];
+		//do domnain lookup via its pointer
+		domainInfo.m_delayTimer = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
+		domainInfo.m_delayTime = milliseconds;
+	}
 	//WriteChatf("Mono_Delay called with %d", m_delayTime);
 	//WriteChatf("Mono_Delay delaytimer %ld", m_delayTimer);
-
-
 }
 static void mono_Echo(MonoString* string)
 {
@@ -742,6 +787,7 @@ static MonoString* mono_ParseTLO(MonoString* text)
 	std::string str(cppString);
 	strncpy_s(buffer, str.c_str(), sizeof(buffer));
 	mono_free(cppString);
+
 	auto old_parser = std::exchange(gParserVersion, 2);
 	MonoString* returnValue;
 	if (ParseMacroData(buffer, sizeof(buffer))) {
