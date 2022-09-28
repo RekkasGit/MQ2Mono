@@ -33,6 +33,7 @@ enum {
 	MONO_ERROR_OUT_OF_MEMORY = 6,
 	MONO_ERROR_ARGUMENT = 7,
 	MONO_ERROR_ARGUMENT_NULL = 11,
+	MONO_ERROR_ARGUMENT_OUT_OF_RANGE = 14,
 	MONO_ERROR_NOT_VERIFIABLE = 8,
 	MONO_ERROR_INVALID_PROGRAM = 12,
 	MONO_ERROR_MEMBER_ACCESS = 13,
@@ -49,6 +50,11 @@ enum {
 	MONO_ERROR_CLEANUP_CALLED_SENTINEL = 0xffff
 };
 
+#ifdef _MSC_VER
+__pragma(warning (push))
+__pragma(warning (disable:4201))
+#endif
+
 /*Keep in sync with MonoErrorInternal*/
 typedef union _MonoError {
 	// Merge two uint16 into one uint32 so it can be initialized
@@ -59,7 +65,17 @@ typedef union _MonoError {
 		uint16_t private_flags; /*DON'T TOUCH */
 		void *hidden_1 [12]; /*DON'T TOUCH */
 	};
-} MonoError;
+} MonoErrorExternal;
+
+#ifdef _MSC_VER
+__pragma(warning (pop))
+#endif
+
+#ifdef MONO_INSIDE_RUNTIME
+typedef union _MonoErrorInternal MonoError;
+#else
+typedef MonoErrorExternal MonoError;
+#endif
 
 /* Mempool-allocated MonoError.*/
 typedef struct _MonoErrorBoxed MonoErrorBoxed;
@@ -75,7 +91,7 @@ mono_error_init_flags (MonoError *error, unsigned short flags);
 MONO_API void
 mono_error_cleanup (MonoError *error);
 
-MONO_API mono_bool
+MONO_API MONO_RT_EXTERNAL_ONLY mono_bool
 mono_error_ok (MonoError *error);
 
 MONO_API unsigned short

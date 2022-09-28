@@ -35,12 +35,13 @@ PLUGIN_VERSION(0.1);
  boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
  void mono_ImGUI_Begin_OpenFlagSet(MonoString* name,bool open);
  //temp methods for now
- void InitE3();
- void UnloadE3();
+ bool InitAppDomain(std::string appDomainName);
+ bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
+ void UnloadAllAppDomains();
 
-
- struct mqAppDomainInfo
+ struct monoAppDomainInfo
  {
+	 std::string m_appDomainName;
 	 //app domain we have created for e3
 	 MonoDomain* m_appDomain=nullptr;
 	 //core.dll information so we can bind to it
@@ -63,12 +64,18 @@ PLUGIN_VERSION(0.1);
 	 std::chrono::steady_clock::time_point m_delayTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
  };
 
- std::map<std::string, mqAppDomainInfo> mqAppDomains;
- std::map<MonoDomain*, std::string> mqAppDomainPtrToString;
+ std::map<std::string, monoAppDomainInfo> monoAppDomains;
+ std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
+ //used to keep a revolving list of who is valid to process. 
+ std::deque<std::string> appDomainProcessQueue;
+
+
 //to be replaced later with collections of multilpe domains, etc.
 //domains where the code is run
 //root domain to contain app domains
 MonoDomain* _rootDomain;
+
+int _milisecondsToProcess = 20;
 
 
 //simple timer to limit puse calls to the .net onpulse.
@@ -117,33 +124,80 @@ void InitMono()
 	initialized = true;
 
 }
-void UnloadE3()
-{
-	std::string appDomainName("E3");
-	 
-	MonoDomain* domainToUnload;
+bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
+{		 
+	MonoDomain* domainToUnload = nullptr;
 	//check to see if its registered, if so update ptr
-	if (mqAppDomains.count(appDomainName) > 0)
+	if (monoAppDomains.count(appDomainName) > 0)
 	{
-		domainToUnload = mqAppDomains[appDomainName].m_appDomain;
+		domainToUnload = monoAppDomains[appDomainName].m_appDomain;
 	}
 	//verify its not the root domain and this is a valid domain pointer
 	if (domainToUnload && domainToUnload != mono_get_root_domain())
 	{
-		mqAppDomains.erase(appDomainName);
-		mqAppDomainPtrToString.erase(domainToUnload);
+		if (updateCollections)
+		{
+			monoAppDomains.erase(appDomainName);
+			monoAppDomainPtrToString.erase(domainToUnload);
+			//remove from the process queue
+			int count = 0;
+			int processCount = appDomainProcessQueue.size();
+
+			while (count < processCount)
+			{
+				count++;
+				std::string currentKey = appDomainProcessQueue.front();
+				appDomainProcessQueue.pop_front();
+				if (!ci_equals(currentKey, appDomainName))
+				{
+					appDomainProcessQueue.push_back(currentKey);
+				}
+			}
+		}
 
 		mono_domain_set(mono_get_root_domain(), false);
 		//mono_thread_pop_appdomain_ref();
 		mono_domain_unload(domainToUnload);
+		
+		
+		return true;
 	}
-	
+	return false;
 }
-void InitE3()
-{
-	UnloadE3();
-	std::string appDomainName("E3");
 
+void UnloadAllAppDomains()
+{
+	//map may be removed
+	//https://stackoverflow.com/questions/8234779/how-to-remove-from-a-map-while-iterating-it
+	for (auto i = monoAppDomains.cbegin(); i != monoAppDomains.cend() /* not hoisted */; /* no increment */)
+	{
+		//unload without modifying the collections
+		UnloadAppDomain(i->second.m_appDomainName,false);
+
+		//now remove from all the collections
+		monoAppDomainPtrToString.erase(i->second.m_appDomain);
+		//remove from the process queue
+		int count = 0;
+		int processCount = appDomainProcessQueue.size();
+
+		while (count < processCount)
+		{
+			count++;
+			std::string currentKey = appDomainProcessQueue.front();
+			appDomainProcessQueue.pop_front();
+			if (!ci_equals(currentKey, i->second.m_appDomainName))
+			{
+				appDomainProcessQueue.push_back(currentKey);
+			}
+		}
+		//moeify the map using the iterator
+		monoAppDomains.erase(i++); // or "i = m.erase(it)" since C++11
+	}
+}
+bool InitAppDomain(std::string appDomainName)
+{
+	UnloadAppDomain(appDomainName);
+	
 	//app domain we have created for e3
 	MonoDomain* appDomain;
 	appDomain = mono_domain_create_appdomain((char*)appDomainName.c_str() , nullptr);
@@ -166,13 +220,11 @@ void InitE3()
 	mono_domain_set(appDomain, false);
 
 
-	csharpAssembly = mono_domain_assembly_open(appDomain, (monoDir + "\\macros\\test\\Core.dll").c_str());
+	csharpAssembly = mono_domain_assembly_open(appDomain, (monoDir + "\\macros\\"+appDomainName+"\\Core.dll").c_str());
 
 	if (!csharpAssembly)
-	{
-		initialized = false;
-		//Error detected
-		return;
+	{	
+		return false;
 	}
 	coreAssemblyImage = mono_assembly_get_image(csharpAssembly);
 	classInfo = mono_class_from_name(coreAssemblyImage, "MonoCore", "Core");
@@ -185,7 +237,8 @@ void InitE3()
 
 	//add it to the collection
 
-	mqAppDomainInfo domainInfo;
+	monoAppDomainInfo domainInfo;
+	domainInfo.m_appDomainName = appDomainName;
 	domainInfo.m_appDomain = appDomain;
 	domainInfo.m_csharpAssembly = csharpAssembly;
 	domainInfo.m_coreAssemblyImage = coreAssemblyImage;
@@ -193,12 +246,14 @@ void InitE3()
 	domainInfo.m_classInstance = classInstance;
 	domainInfo.m_OnPulseMethod = OnPulseMethod;
 	domainInfo.m_OnWriteChatColor = OnWriteChatColor;
+	domainInfo.m_OnIncomingChat = OnIncomingChat;
 	domainInfo.m_OnInit = OnInit;
 	domainInfo.m_OnUpdateImGui = OnUpdateImGui;
 
+	monoAppDomains[appDomainName] = domainInfo;
+	monoAppDomainPtrToString[appDomain] = appDomainName;
+	appDomainProcessQueue.push_back(appDomainName);
 	
-	mqAppDomains[appDomainName] = domainInfo;
-	mqAppDomainPtrToString[appDomain] = appDomainName;
 
 	//call the Init
 	if (OnInit)
@@ -206,7 +261,7 @@ void InitE3()
 		mono_runtime_invoke(OnInit, classInstance, nullptr, nullptr);
 	}
 
-	//classConstructor = mono_class_get_method_from_name(m_classInfo, ".ctor", 1);
+	return true;
 	
 }
 void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
@@ -223,15 +278,73 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 	WriteChatf("\arMQ2Mono\au::\at Command issued.");
 	WriteChatf(szParam1);
 	WriteChatf(szParam2);
+	if (ci_equals(szParam1, "list"))
+	{
+		WriteChatf("\arMQ2Mono\au::\at List Running Processes.");
+		for (auto i : monoAppDomains)
+		{
+			WriteChatf(i.second.m_appDomainName.c_str());
+		}
+		WriteChatf("\arMQ2Mono\au::\at End List.");
+	
+	}
+
 	if (ci_equals(szParam1, "unload"))
 	{
-		WriteChatf("\arMQ2Mono\au::\at Unloading e3.");
-		UnloadE3();
+		if (strlen(szParam2))
+		{
+			if (ci_equals(szParam2, "ALL"))
+			{
+				UnloadAllAppDomains();
+				WriteChatf("\arMQ2Mono\au::\at Finished Unloading all scripts.");
+			}
+			else
+			{
+				WriteChatf("\arMQ2Mono\au::\at Unloading %s", szParam2);
+				std::string input(szParam2);
+				if (UnloadAppDomain(input))
+				{
+					WriteChatf("\arMQ2Mono\au::\at Finished Unloading %s", szParam2);
+				}
+				else
+				{
+					WriteChatf("\arMQ2Mono\au::\at Cannot find %s", szParam2);
+				}
+
+			}
+			
+
+		}
+		else
+		{
+			WriteChatf("\arMQ2Mono\au::\at What should I load?");
+
+		}
 	}
 	else if (ci_equals(szParam1, "load"))
 	{
-		WriteChatf("\arMQ2Mono\au::\at Reloading e3.");
-		InitE3();
+		if (strlen(szParam2))
+		{
+			WriteChatf("\arMQ2Mono\au::\at Loading %s",szParam2);
+			std::string input(szParam2);
+			if (InitAppDomain(input))
+			{
+				WriteChatf("\arMQ2Mono\au::\at Finished Loading %s", szParam2);
+			}
+			else
+			{
+				WriteChatf("\arMQ2Mono\au::\at Cannot find %s", szParam2);
+
+			}
+
+		}
+		else
+		{
+			WriteChatf("\arMQ2Mono\au::\at What should I load?");
+
+		}
+
+
 	}
 	
 
@@ -261,7 +374,7 @@ PLUGIN_API void InitializePlugin()
  */
 PLUGIN_API void ShutdownPlugin()
 {
-	UnloadE3();
+	
 	DebugSpewAlways("MQ2Mono::Shutting down");
 	// Examples:
 	// RemoveCommand("/mycommand");
@@ -360,31 +473,70 @@ PLUGIN_API void SetGameState(int GameState)
  */
 PLUGIN_API void OnPulse()
 {	
-	//for each app domain, lets do processing
-	for (auto i : mqAppDomains)
+
+	if (appDomainProcessQueue.size() < 1) return;
+
+	std::chrono::steady_clock::time_point proccessingTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
+
+
+
+	int gameState = GetGameState();
+
+	// If we have left the world and have apps running, unload them all
+	if (gameState == GAMESTATE_CHARSELECT || gameState == GAMESTATE_PRECHARSELECT)
 	{
-		//if we are not in game, kick out no sense running
-		//if (gGameState != GAMESTATE_INGAME) return;
-		// Run only after timer is up
-		if (i.second.m_delayTime > 0 && std::chrono::steady_clock::now() > i.second.m_delayTimer)
+		if (monoAppDomains.size() > 0)
 		{
-			i.second.m_delayTime = 0;
-			//WriteChatf("%s", s_environment->monoDir.c_str());
-			// Wait 5 seconds before running again
-			//PulseTimer = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-			//DebugSpewAlways("MQ2Mono::OnPulse()");
+			//unload all app domains to terminate all scripts
+			UnloadAllAppDomains();
 		}
-		//we are still in a delay
-		if (i.second.m_delayTime > 0) continue;
-		//WriteChatf("m_delayTime with %d", m_delayTime);
-		//WriteChatf("m_delayTimer with %ld", m_delayTimer);
-		//Call the main method in this code
-		if (i.second.m_appDomain && i.second.m_OnPulseMethod)
-		{
-			mono_domain_set(i.second.m_appDomain, false);
-			mono_runtime_invoke(i.second.m_OnPulseMethod, i.second.m_classInstance, nullptr, nullptr);
-		}
+		return;
 	}
+	std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
+
+
+	size_t count = 0;
+	size_t processQueueSize = appDomainProcessQueue.size();
+	while (count< processQueueSize)
+	{
+		std::string domainKey = appDomainProcessQueue.front();
+		appDomainProcessQueue.pop_front();
+		appDomainProcessQueue.push_back(domainKey);
+		count++;
+		//get pointer to struct
+
+		auto i = monoAppDomains.find(domainKey);
+		if (i != monoAppDomains.end())
+		{
+			//if we have a delay check to see if we can reset it
+			if (i->second.m_delayTime > 0 && std::chrono::steady_clock::now() > i->second.m_delayTimer)
+			{
+				i->second.m_delayTime = 0;
+			}
+			//check to make sure we are not in an delay
+			if (i->second.m_delayTime == 0) {
+				//if not, do work
+				if (i->second.m_appDomain && i->second.m_OnPulseMethod)
+				{
+					mono_domain_set(i->second.m_appDomain, false);
+					mono_runtime_invoke(i->second.m_OnPulseMethod, i->second.m_classInstance, nullptr, nullptr);
+				}
+			}
+			//check if we have spent the specified time N-ms, or we have processed the entire queue kick out
+			if (std::chrono::steady_clock::now() > (proccessingTimer + std::chrono::milliseconds(_milisecondsToProcess)) || count >= appDomainProcessQueue.size())
+			{
+				break;
+			}
+		}
+		else
+		{
+			//should never be ever to get here, but if so.
+			//get rid of the bad domainKey
+			appDomainProcessQueue.pop_back();
+		}
+
+	}
+
 }
 
 /**
@@ -442,19 +594,20 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
  */
 PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
 {
-	for (auto i : mqAppDomains)
+	for (auto i : monoAppDomains)
 	{
 		//Call the main method in this code
 		if (i.second.m_appDomain && i.second.m_OnIncomingChat)
 		{
+			mono_domain_set(i.second.m_appDomain, false);
 			MonoString* monoLine = mono_string_new(i.second.m_appDomain, Line);
 			void* params[1] =
 			{
 				monoLine
 
 			};
-			mono_domain_set(i.second.m_appDomain, false);
-			mono_runtime_invoke(i.second.m_OnIncomingChat, i.second.m_classInstance, nullptr, nullptr);
+			
+			mono_runtime_invoke(i.second.m_OnIncomingChat, i.second.m_classInstance, params, nullptr);
 		}
 	}
 	// DebugSpewAlways("MQ2Mono::OnIncomingChat(%s, %d)", Line, Color);
@@ -573,7 +726,7 @@ PLUGIN_API void OnZoned()
  */
 PLUGIN_API void OnUpdateImGui()
 {
-	for (auto i : mqAppDomains)
+	for (auto i : monoAppDomains)
 	{
 		//Call the main method in this code
 		if (i.second.m_appDomain && i.second.m_OnUpdateImGui)
@@ -671,9 +824,9 @@ static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 
 	if (currentDomain)
 	{
-		std::string key = mqAppDomainPtrToString[currentDomain];
+		std::string key = monoAppDomainPtrToString[currentDomain];
 		//pointer to the value in the map
-		auto & domainInfo = mqAppDomains[key];
+		auto & domainInfo = monoAppDomains[key];
 		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
 		{
 			//key doesn't exist, add it
@@ -696,9 +849,9 @@ static boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name)
 
 	if (currentDomain)
 	{
-		std::string key = mqAppDomainPtrToString[currentDomain];
+		std::string key = monoAppDomainPtrToString[currentDomain];
 		//pointer to the value in the map
-		auto& domainInfo = mqAppDomains[key];
+		auto& domainInfo = monoAppDomains[key];
 		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
 		{
 			//key doesn't exist, add it
@@ -720,9 +873,9 @@ static bool mono_ImGUI_Begin(MonoString* name, int flags)
 
 	if (currentDomain)
 	{
-		std::string key = mqAppDomainPtrToString[currentDomain];
+		std::string key = monoAppDomainPtrToString[currentDomain];
 		//pointer to the value in the map
-		auto& domainInfo = mqAppDomains[key];
+		auto& domainInfo = monoAppDomains[key];
 
 		domainInfo.m_CurrentWindow = str;
 		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
@@ -755,9 +908,9 @@ static void mono_Delay(int milliseconds)
 	MonoDomain* currentDomain = mono_domain_get();
 	if (currentDomain)
 	{
-		std::string key = mqAppDomainPtrToString[currentDomain];
+		std::string key = monoAppDomainPtrToString[currentDomain];
 		//pointer to the value in the map
-		auto& domainInfo = mqAppDomains[key];
+		auto& domainInfo = monoAppDomains[key];
 		//do domnain lookup via its pointer
 		domainInfo.m_delayTimer = std::chrono::steady_clock::now() + std::chrono::milliseconds(milliseconds);
 		domainInfo.m_delayTime = milliseconds;
