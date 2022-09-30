@@ -21,6 +21,7 @@ PLUGIN_VERSION(0.1);
  */
  bool ShowMQ2MonoWindow = true;
  std::string monoDir;
+ std::string monoRuntimeDir;
  bool initialized = false;
 
  //define methods exposde to the plugin to be executed
@@ -97,10 +98,20 @@ void InitMono()
 		mono_jit_parse_options(1, (char**)options);
 		*/
 
+	//setup mono macro directory + runtime directory
 	monoDir = std::filesystem::path(gPathMQRoot).u8string();
+	#if !defined(_M_AMD64)
+	monoRuntimeDir = monoDir + "\\resources\\mono\\32bit";
+	#elif
+	monoRuntimeDir = monoDir + "\\resources\\mono\\64bit";
+	#endif
+
 	monoDir = monoDir + "\\Mono";
 
-	mono_set_dirs((monoDir + "\\lib").c_str(), (monoDir + "\\etc").c_str());
+
+	
+
+	mono_set_dirs((monoRuntimeDir + "\\lib").c_str(), (monoRuntimeDir + "\\etc").c_str());
 	_rootDomain = mono_jit_init("Mono_Domain");
 	mono_domain_set(_rootDomain, false);
 
@@ -112,8 +123,6 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_DoCommand", &mono_DoCommand);
 	mono_add_internal_call("MonoCore.Core::mq_Delay", &mono_Delay);
 
-
-	
 	//I'm GUI stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.Core::imgui_Button", &mono_ImGUI_Button);
@@ -190,7 +199,7 @@ void UnloadAllAppDomains()
 				appDomainProcessQueue.push_back(currentKey);
 			}
 		}
-		//moeify the map using the iterator
+		//modify the map using the iterator
 		monoAppDomains.erase(i++); // or "i = m.erase(it)" since C++11
 	}
 }
@@ -220,10 +229,35 @@ bool InitAppDomain(std::string appDomainName)
 	mono_domain_set(appDomain, false);
 
 
-	csharpAssembly = mono_domain_assembly_open(appDomain, (monoDir + "\\macros\\"+appDomainName+"\\Core.dll").c_str());
+	std::string fileName = "Core.dll";
+	std::string assemblypath = (monoDir + "\\macros\\" + appDomainName + "\\");
 
+	bool filepathExists = std::filesystem::exists(assemblypath + fileName);
+
+	if (!filepathExists)
+	{
+		UnloadAppDomain(appDomainName, false);
+		return false;
+	}
+	
+	//shadow directory work, copy over dlls to the new folder
+	std::string charName(pLocalPC->Name);
+	std::string shadowDirectory = assemblypath + charName+"\\";
+
+	namespace fs = std::filesystem;
+	if (!fs::is_directory(shadowDirectory) || !fs::exists(shadowDirectory)) { // Check if src folder exists
+		fs::create_directory(shadowDirectory); // create src folder
+	}
+
+	//copy it to a new directory
+	std::filesystem::copy(assemblypath, shadowDirectory, std::filesystem::copy_options::overwrite_existing);
+
+	
+	csharpAssembly = mono_domain_assembly_open(appDomain, (shadowDirectory + fileName).c_str());
+	
 	if (!csharpAssembly)
-	{	
+	{
+		UnloadAppDomain(appDomainName, false);
 		return false;
 	}
 	coreAssemblyImage = mono_assembly_get_image(csharpAssembly);
@@ -276,8 +310,8 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 		GetArg(szParam2, szLine, 2);
 	}
 	WriteChatf("\arMQ2Mono\au::\at Command issued.");
-	WriteChatf(szParam1);
-	WriteChatf(szParam2);
+	//WriteChatf(szParam1);
+	//WriteChatf(szParam2);
 	if (ci_equals(szParam1, "list"))
 	{
 		WriteChatf("\arMQ2Mono\au::\at List Running Processes.");
@@ -289,7 +323,7 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 	
 	}
 
-	if (ci_equals(szParam1, "unload"))
+	if (ci_equals(szParam1, "unload") || ci_equals(szParam1, "stop"))
 	{
 		if (strlen(szParam2))
 		{
@@ -321,7 +355,7 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 		}
 	}
-	else if (ci_equals(szParam1, "load"))
+	else if (ci_equals(szParam1, "load") || ci_equals(szParam1, "run") || ci_equals(szParam1, "start"))
 	{
 		if (strlen(szParam2))
 		{
@@ -803,13 +837,9 @@ PLUGIN_API void OnUnloadPlugin(const char* Name)
 	/// Anything else is not supported by Mono and you may have unpredictable results.
 	/// </summary>
 	/// 
-	/// https://github.com/mono/mono/issues/20208
-	/// you can use domain to reload assembly: create domain -> load assembly ->unload domain
-	/// (it can unload assembly within this domain) -> create domain again ->reload assembly
-	/// for future me
-	/// mono_jit_cleanup(root_domain);
 	
-
+	mono_jit_cleanup(mono_get_root_domain());
+	
 }
 #pragma region
 
