@@ -851,7 +851,7 @@ PLUGIN_API void OnUnloadPlugin(const char* Name)
 	/// Anything else is not supported by Mono and you may have unpredictable results.
 	/// </summary>
 	/// 
-	
+	UnloadAllAppDomains();
 	mono_jit_cleanup(mono_get_root_domain());
 	
 }
