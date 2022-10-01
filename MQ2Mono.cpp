@@ -56,6 +56,7 @@ PLUGIN_VERSION(0.1);
 	 MonoMethod* m_OnIncomingChat = nullptr;
 	 MonoMethod* m_OnInit = nullptr;
 	 MonoMethod* m_OnUpdateImGui = nullptr;
+	 MonoMethod* m_OnStop = nullptr;
 	 std::map<std::string, bool> m_IMGUI_OpenWindows;
 	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
 	 std::map<std::string, bool> m_IMGUI_RadioButtonValues;
@@ -144,6 +145,12 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 	//verify its not the root domain and this is a valid domain pointer
 	if (domainToUnload && domainToUnload != mono_get_root_domain())
 	{
+		if (monoAppDomains[appDomainName].m_OnStop)
+		{
+			mono_domain_set(domainToUnload, false);
+			mono_runtime_invoke(monoAppDomains[appDomainName].m_OnStop, monoAppDomains[appDomainName].m_classInstance, nullptr, nullptr);
+		}
+
 		if (updateCollections)
 		{
 			monoAppDomains.erase(appDomainName);
@@ -165,6 +172,10 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 		}
 
 		mono_domain_set(mono_get_root_domain(), false);
+
+
+	
+
 		//mono_thread_pop_appdomain_ref();
 		mono_domain_unload(domainToUnload);
 		
@@ -222,6 +233,7 @@ bool InitAppDomain(std::string appDomainName)
 	MonoMethod* OnWriteChatColor;
 	MonoMethod* OnIncomingChat;
 	MonoMethod* OnInit;
+	MonoMethod* OnStop;
 	MonoMethod* OnUpdateImGui;
 	std::map<std::string, bool> IMGUI_OpenWindows;
 
@@ -267,6 +279,7 @@ bool InitAppDomain(std::string appDomainName)
 	OnWriteChatColor = mono_class_get_method_from_name(classInfo, "OnWriteChatColor", 1);
 	OnIncomingChat = mono_class_get_method_from_name(classInfo, "OnIncomingChat", 1);
 	OnInit = mono_class_get_method_from_name(classInfo, "OnInit", 0);
+	OnStop = mono_class_get_method_from_name(classInfo, "OnStop", 0);
 	OnUpdateImGui = mono_class_get_method_from_name(classInfo, "OnUpdateImGui", 0);
 
 	//add it to the collection
@@ -282,6 +295,7 @@ bool InitAppDomain(std::string appDomainName)
 	domainInfo.m_OnWriteChatColor = OnWriteChatColor;
 	domainInfo.m_OnIncomingChat = OnIncomingChat;
 	domainInfo.m_OnInit = OnInit;
+	domainInfo.m_OnStop = OnStop;
 	domainInfo.m_OnUpdateImGui = OnUpdateImGui;
 
 	monoAppDomains[appDomainName] = domainInfo;
