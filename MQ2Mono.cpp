@@ -608,20 +608,43 @@ PLUGIN_API void OnPulse()
  * @param Filter int - (default 0)
  */
 PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
-{
-	return;
-	//if (m_E3Domain && m_OnWriteChatColor) {
-	//	
-	//	MonoString* monoLine = mono_string_new(m_E3Domain, Line);
-	//	void* params[1] =
-	//	{
-	//		monoLine
-	//		
-	//	};
-	//	mono_domain_set(m_E3Domain, false);
-	//	mono_runtime_invoke(m_OnWriteChatColor, m_classInstance, params, nullptr);
-	//	//do not free monoLine as its now part of the GC
-	//}
+{	
+	if (monoAppDomains.size() == 0) return;
+
+	std::string_view line = Line;
+	char line_char[MAX_STRING] = { 0 };
+
+	if (line.find_first_of('\x12') != std::string::npos)
+	{
+		CXStr line_str(line);
+		line_str = CleanItemTags(line_str, false);
+		StripMQChat(line_str, line_char);
+	}
+	else
+	{
+		StripMQChat(line, line_char);
+	}
+
+	// since we initialized to 0, we know that any remaining members will be 0, so just in case we Get an overflow, re-set the last character to 0
+	line_char[MAX_STRING - 1] = 0;
+
+	for (auto i : monoAppDomains)
+	{
+		//Call the main method in this code
+		if (i.second.m_appDomain && i.second.m_OnIncomingChat)
+		{
+			mono_domain_set(i.second.m_appDomain, false);
+
+			MonoString* monoLine = mono_string_new(i.second.m_appDomain, line_char);
+			void* params[1] =
+			{
+				monoLine
+
+			};
+
+			mono_runtime_invoke(i.second.m_OnWriteChatColor, i.second.m_classInstance, params, nullptr);
+		}
+	}
 	 //DebugSpewAlways("MQ2Mono::OnWriteChatColor(%s, %d, %d)", Line, Color, Filter);
 }
 
