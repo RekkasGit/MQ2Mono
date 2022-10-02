@@ -29,6 +29,8 @@ PLUGIN_VERSION(0.1);
  MonoString* mono_ParseTLO(MonoString* string);
  void mono_DoCommand(MonoString* string);
  void mono_Delay(int milliseconds);
+ void mono_AddCommand(MonoString* string);
+ void mono_ClearCommands();
  //IMGUI calls
  bool mono_ImGUI_Begin(MonoString* name, int flags);
  bool mono_ImGUI_Button(MonoString* name);
@@ -57,6 +59,7 @@ PLUGIN_VERSION(0.1);
 	 MonoMethod* m_OnInit = nullptr;
 	 MonoMethod* m_OnUpdateImGui = nullptr;
 	 MonoMethod* m_OnStop = nullptr;
+	 MonoMethod* m_OnCommand = nullptr;
 	 std::map<std::string, bool> m_IMGUI_OpenWindows;
 	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
 	 std::map<std::string, bool> m_IMGUI_RadioButtonValues;
@@ -64,6 +67,42 @@ PLUGIN_VERSION(0.1);
 	 bool m_IMGUI_Open = true;
 	 int m_delayTime = 0;//amount of time in milliseonds that was set by C#
 	 std::chrono::steady_clock::time_point m_delayTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
+	 std::deque<std::string> m_CommandList;
+	 void AddCommand(std::string commandName)
+	 {
+		 m_CommandList.push_back(commandName);
+
+		 AddFunction(commandName.c_str(), [this,commandName](PlayerClient*, char* args) -> void
+			{		
+				
+				if (this->m_appDomain )
+				{
+					if (this->m_OnCommand)
+					{
+						std::string line = args;
+						line = commandName +" "+ line;
+						mono_domain_set(this->m_appDomain, false);
+						MonoString* monoLine = mono_string_new(this->m_appDomain, line.c_str());
+						void* params[1] =
+						{
+							monoLine
+
+						};
+						mono_runtime_invoke(this->m_OnCommand, this->m_classInstance, params, nullptr);
+					}
+			}
+		  });
+	 }
+	 void ClearCommands()
+	 {
+		 while (this->m_CommandList.size() > 0)
+		 {
+			 RemoveCommand(m_CommandList.front().c_str());
+			 m_CommandList.pop_front();
+		 }
+		
+	 }
+
  };
 
  std::map<std::string, monoAppDomainInfo> monoAppDomains;
@@ -123,6 +162,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_ParseTLO", &mono_ParseTLO);
 	mono_add_internal_call("MonoCore.Core::mq_DoCommand", &mono_DoCommand);
 	mono_add_internal_call("MonoCore.Core::mq_Delay", &mono_Delay);
+	mono_add_internal_call("MonoCore.Core::mq_AddCommand", &mono_AddCommand);
+	mono_add_internal_call("MonoCore.Core::mq_ClearCommands", &mono_ClearCommands);
 
 	//I'm GUI stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
@@ -130,6 +171,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::imgui_End", &mono_ImGUI_End);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagSet", &mono_ImGUI_Begin_OpenFlagSet);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
+
+	
 
 	initialized = true;
 
@@ -150,6 +193,9 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 			mono_domain_set(domainToUnload, false);
 			mono_runtime_invoke(monoAppDomains[appDomainName].m_OnStop, monoAppDomains[appDomainName].m_classInstance, nullptr, nullptr);
 		}
+		//clean up any commands we have registered
+		monoAppDomains[appDomainName].ClearCommands();
+
 
 		if (updateCollections)
 		{
@@ -170,6 +216,9 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 				}
 			}
 		}
+
+		//unload the commands
+
 
 		mono_domain_set(mono_get_root_domain(), false);
 
@@ -234,6 +283,7 @@ bool InitAppDomain(std::string appDomainName)
 	MonoMethod* OnIncomingChat;
 	MonoMethod* OnInit;
 	MonoMethod* OnStop;
+	MonoMethod* OnCommand;
 	MonoMethod* OnUpdateImGui;
 	std::map<std::string, bool> IMGUI_OpenWindows;
 
@@ -281,7 +331,7 @@ bool InitAppDomain(std::string appDomainName)
 	OnInit = mono_class_get_method_from_name(classInfo, "OnInit", 0);
 	OnStop = mono_class_get_method_from_name(classInfo, "OnStop", 0);
 	OnUpdateImGui = mono_class_get_method_from_name(classInfo, "OnUpdateImGui", 0);
-
+	OnCommand = mono_class_get_method_from_name(classInfo, "OnCommand", 1);
 	//add it to the collection
 
 	monoAppDomainInfo domainInfo;
@@ -297,6 +347,7 @@ bool InitAppDomain(std::string appDomainName)
 	domainInfo.m_OnInit = OnInit;
 	domainInfo.m_OnStop = OnStop;
 	domainInfo.m_OnUpdateImGui = OnUpdateImGui;
+	domainInfo.m_OnCommand = OnCommand;
 
 	monoAppDomains[appDomainName] = domainInfo;
 	monoAppDomainPtrToString[appDomain] = appDomainName;
@@ -878,8 +929,38 @@ PLUGIN_API void OnUnloadPlugin(const char* Name)
 	mono_jit_cleanup(mono_get_root_domain());
 	
 }
-#pragma region
+void OnCommand(std::string command)
+{
 
+}
+#pragma region
+static void mono_AddCommand(MonoString* text)
+{
+	char* cppString = mono_string_to_utf8(text);
+	std::string str(cppString);
+	mono_free(cppString);
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = monoAppDomains[key];
+		domainInfo.AddCommand(str);
+	}
+}
+static void mono_ClearCommands()
+{	
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = monoAppDomains[key];
+		domainInfo.ClearCommands();
+	}
+}
 //TODO: change all m_ variables to a collection of them
 static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 {
@@ -1021,6 +1102,8 @@ static MonoString* mono_ParseTLO(MonoString* text)
 	gParserVersion = old_parser;
 	return returnValue;
 }
+
+
 
 #pragma endregion Exposed methods to plugin
 
