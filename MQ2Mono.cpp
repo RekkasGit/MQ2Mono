@@ -42,7 +42,11 @@ PLUGIN_VERSION(0.1);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
  void mono_GetSpawns();
-
+ 
+ /// <summary>
+ /// Main data structure that has information on each individual app domain that we create and informatoin
+ /// we need to keep track of.
+ /// </summary>
  struct monoAppDomainInfo
  {
 	 std::string m_appDomainName;
@@ -1171,23 +1175,17 @@ static void mono_GetSpawns()
 		unsigned char buffer[1024];
 		int bufferSize = 0;
 
-		MonoArray* data = mono_array_new(currentDomain, mono_get_byte_class(), sizeof(buffer));
-
-		
-		void* params[2] =
-		{
-			data,
-			&bufferSize
-		};
-
 		if (pSpawnManager)
 		{
-
+		
+			
 			auto spawn = pSpawnManager->FirstSpawn;
 			//get a pointer to the buffer
 			unsigned char* pBuffer = buffer;
 
 			char tempBuffer[MAX_STRING];
+			//assuming I cannot reuse this as there is no free once you call the invoke
+			MonoArray* data = mono_array_new(currentDomain, mono_get_byte_class(), sizeof(buffer));
 
 			while (spawn != nullptr)
 			{
@@ -1240,12 +1238,9 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(isBuyer);
 
 				int ClassID = spawn->GetClass();
-
 				memcpy(pBuffer, &ClassID, sizeof(ClassID));
 				pBuffer += sizeof(ClassID);
 				bufferSize += sizeof(ClassID);
-
-
 
 				strcpy_s(tempBuffer, spawn->Name);
 				CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
@@ -1351,6 +1346,14 @@ static void mono_GetSpawns()
 				memcpy(pBuffer, &level, sizeof(level));
 				pBuffer += sizeof(level);
 				bufferSize += sizeof(level);
+
+				//TODO:possible bug? default to false for now
+				// https://github.com/macroquest/macroquest/issues/632
+				//bool levitation = (spawn->mPlayerPhysicsClient.Levitate == 2);
+				bool levitation = false;
+				memcpy(pBuffer, &levitation, sizeof(levitation));
+				pBuffer += sizeof(levitation);
+				bufferSize += sizeof(levitation);
 
 				bool linkDead = spawn->Linkdead;
 				memcpy(pBuffer, &linkDead, sizeof(linkDead));
@@ -1482,10 +1485,14 @@ static void mono_GetSpawns()
 				pBuffer += sizeof(standing);
 				bufferSize += sizeof(standing);
 
-				bool stunned = (spawn->PlayerState & 0x20);
-				memcpy(pBuffer, &standing, sizeof(standing));
-				pBuffer += sizeof(standing);
-				bufferSize += sizeof(standing);
+				bool stunned = false;
+				if (spawn->PlayerState & 0x20)
+				{
+					stunned = true;
+				}
+				memcpy(pBuffer, &stunned, sizeof(stunned));
+				pBuffer += sizeof(stunned);
+				bufferSize += sizeof(stunned);
 
 				std::string suffix(spawn->Suffix);
 				int tsuffixLength = suffix.size();
@@ -1522,7 +1529,7 @@ static void mono_GetSpawns()
 				//copy the data
 				memcpy(pBuffer, typeDescription.c_str(), ttypeDescriptionLength);
 				pBuffer += ttypeDescriptionLength;
-				bufferSize += tsuffixLength;
+				bufferSize += ttypeDescriptionLength;
 
 				bool underwater = (spawn->UnderWater == LiquidType_Water);
 				memcpy(pBuffer, &underwater, sizeof(underwater));
@@ -1543,15 +1550,34 @@ static void mono_GetSpawns()
 				memcpy(pBuffer, &z, sizeof(z));
 				pBuffer += sizeof(z);
 				bufferSize += sizeof(z);
+	
+				//so distance calculations can be done
+				float playerx = pControlledPlayer->X;
+				memcpy(pBuffer, &playerx, sizeof(playerx));
+				pBuffer += sizeof(playerx);
+				bufferSize += sizeof(playerx);
+
+				float playery = pControlledPlayer->Y;
+				memcpy(pBuffer, &playery, sizeof(playery));
+				pBuffer += sizeof(playery);
+				bufferSize += sizeof(playery);
+
+				float playerz = pControlledPlayer->Z;
+				memcpy(pBuffer, &playerz, sizeof(playerz));
+				pBuffer += sizeof(playerz);
+				bufferSize += sizeof(playerz);
+
 
 				//copy over the array
 				for (auto i = 0; i < bufferSize; i++) {
 					mono_array_set(data, uint8_t, i, buffer[i]);
 				}
-
-
+				void* params[2] =
+				{
+					data,
+					&bufferSize
+				};
 				mono_runtime_invoke(domainInfo.m_OnSetSpawns, domainInfo.m_classInstance, params, nullptr);
-
 
 				spawn = spawn->GetNext();
 			}
