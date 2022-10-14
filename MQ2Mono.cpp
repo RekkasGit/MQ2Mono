@@ -28,7 +28,7 @@ PLUGIN_VERSION(0.1);
  MonoString* mono_ParseTLO(MonoString* string);
  void mono_DoCommand(MonoString* string);
  void mono_Delay(int milliseconds);
- void mono_AddCommand(MonoString* string);
+ bool mono_AddCommand(MonoString* string);
  void mono_ClearCommands();
  void mono_RemoveCommand(MonoString* text);
  //IMGUI calls
@@ -42,6 +42,7 @@ PLUGIN_VERSION(0.1);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
  void mono_GetSpawns();
+ bool mono_GetRunNextCommand();
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -75,30 +76,36 @@ PLUGIN_VERSION(0.1);
 	 int m_delayTime = 0;//amount of time in milliseonds that was set by C#
 	 std::chrono::steady_clock::time_point m_delayTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
 	 std::deque<std::string> m_CommandList;
-	 void AddCommand(std::string commandName)
+	 bool AddCommand(std::string commandName)
 	 {
-		 m_CommandList.push_back(commandName);
+		 if (!IsCommand(commandName.c_str()))
+		 {
+			 m_CommandList.push_back(commandName);
 
-		 AddFunction(commandName.c_str(), [this,commandName](PlayerClient*, char* args) -> void
-			{		
-				
-				if (this->m_appDomain )
-				{
-					if (this->m_OnCommand)
-					{
-						std::string line = args;
-						line = commandName +" "+ line;
-						mono_domain_set(this->m_appDomain, false);
-						MonoString* monoLine = mono_string_new(this->m_appDomain, line.c_str());
-						void* params[1] =
-						{
-							monoLine
+			 AddFunction(commandName.c_str(), [this, commandName](PlayerClient*, const char* args) -> void
+				 {
 
-						};
-						mono_runtime_invoke(this->m_OnCommand, this->m_classInstance, params, nullptr);
-					}
-			}
-		  });
+					 if (this->m_appDomain)
+					 {
+						 if (this->m_OnCommand)
+						 {
+							 std::string line = args;
+							 line = commandName + " " + line;
+							 mono_domain_set(this->m_appDomain, false);
+							 MonoString* monoLine = mono_string_new(this->m_appDomain, line.c_str());
+							 void* params[1] =
+							 {
+								 monoLine
+
+							 };
+							 mono_runtime_invoke(this->m_OnCommand, this->m_classInstance, params, nullptr);
+						 }
+					 }
+				 });
+			 return true;
+		 }
+		 return false;
+		 
 	 }
 	 void RemoveCommand(std::string command)
 	 {
@@ -135,7 +142,7 @@ PLUGIN_VERSION(0.1);
  std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
  //used to keep a revolving list of who is valid to process. 
  std::deque<std::string> appDomainProcessQueue;
-
+ uint32_t bmUpdateMonoOnPulse = 0;
 
 //to be replaced later with collections of multilpe domains, etc.
 //domains where the code is run
@@ -192,6 +199,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_ClearCommands", &mono_ClearCommands);
 	mono_add_internal_call("MonoCore.Core::mq_RemoveCommand", &mono_RemoveCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns", &mono_GetSpawns);
+	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
+	
 	//I'm GUI stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.Core::imgui_Button", &mono_ImGUI_Button);
@@ -200,7 +209,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
 
 	
-
+	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
 	initialized = true;
 
 }
@@ -476,6 +485,24 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 
 	}
+	else
+	{
+		if (strlen(szParam1))
+		{
+			WriteChatf("\arMQ2Mono\au::\at Loading %s", szParam1);
+			std::string input(szParam1);
+			if (InitAppDomain(input))
+			{
+				WriteChatf("\arMQ2Mono\au::\at Finished Loading %s", szParam1);
+			}
+			else
+			{
+				WriteChatf("\arMQ2Mono\au::\at Cannot find %s", szParam1);
+
+			}
+
+		}
+	}
 	
 
 }
@@ -611,9 +638,16 @@ PLUGIN_API void OnPulse()
 
 
 	int gameState = GetGameState();
-
+	/*constexpr int GAMESTATE_PRECHARSELECT  = -1;
+	constexpr int GAMESTATE_CHARSELECT     = 1;
+	constexpr int GAMESTATE_CHARCREATE     = 2;
+	constexpr int GAMESTATE_POSTCHARSELECT = 3;
+	constexpr int GAMESTATE_SOMETHING      = 4;
+	constexpr int GAMESTATE_INGAME         = 5;
+	constexpr int GAMESTATE_LOGGINGIN      = 253;
+	constexpr int GAMESTATE_UNLOADING      = 255;*/
 	// If we have left the world and have apps running, unload them all
-	if (gameState == GAMESTATE_CHARSELECT || gameState == GAMESTATE_PRECHARSELECT)
+	if (gameState != GAMESTATE_INGAME)
 	{
 		if (monoAppDomains.size() > 0)
 		{
@@ -648,6 +682,7 @@ PLUGIN_API void OnPulse()
 				//if not, do work
 				if (i->second.m_appDomain && i->second.m_OnPulseMethod)
 				{
+					MQScopedBenchmark bm1(bmUpdateMonoOnPulse);
 					mono_domain_set(i->second.m_appDomain, false);
 					mono_runtime_invoke(i->second.m_OnPulseMethod, i->second.m_classInstance, nullptr, nullptr);
 				}
@@ -961,6 +996,7 @@ PLUGIN_API void OnUnloadPlugin(const char* Name)
 	/// 
 	UnloadAllAppDomains();
 	mono_jit_cleanup(mono_get_root_domain());
+	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
 	
 }
 void OnCommand(std::string command)
@@ -968,7 +1004,7 @@ void OnCommand(std::string command)
 
 }
 #pragma region
-static void mono_AddCommand(MonoString* text)
+static bool mono_AddCommand(MonoString* text)
 {
 	char* cppString = mono_string_to_utf8(text);
 	std::string str(cppString);
@@ -980,9 +1016,12 @@ static void mono_AddCommand(MonoString* text)
 		std::string key = monoAppDomainPtrToString[currentDomain];
 		//pointer to the value in the map
 		auto& domainInfo = monoAppDomains[key];
-		domainInfo.AddCommand(str);
+		return domainInfo.AddCommand(str);
 	}
+
+	return false;
 }
+
 static void mono_ClearCommands()
 {	
 	MonoDomain* currentDomain = mono_domain_get();
@@ -1151,7 +1190,13 @@ static MonoString* mono_ParseTLO(MonoString* text)
 	gParserVersion = old_parser;
 	return returnValue;
 }
+//used to get the global boolean 
+bool mono_GetRunNextCommand()
+{
 
+	return bRunNextCommand;
+
+}
 /// <summary>
 /// seralize the spawn data to be sent into mono
 /// </summary>
@@ -1195,6 +1240,11 @@ static void mono_GetSpawns()
 				bufferSize = 0;
 
 				//fill the buffer
+				int ID = spawn->SpawnID;
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+
 				bool isAFK = (spawn->AFK != 0);
 				memcpy(pBuffer, &isAFK, sizeof(isAFK));
 				pBuffer += sizeof(isAFK);
@@ -1327,10 +1377,7 @@ static void mono_GetSpawns()
 				pBuffer += sizeof(height);
 				bufferSize += sizeof(height);
 
-				int ID = spawn->SpawnID;
-				memcpy(pBuffer, &ID, sizeof(ID));
-				pBuffer += sizeof(ID);
-				bufferSize += sizeof(ID);
+				
 
 				bool Invs = (spawn->HideMode != 0);
 				memcpy(pBuffer, &Invs, sizeof(Invs));
@@ -1566,6 +1613,11 @@ static void mono_GetSpawns()
 				memcpy(pBuffer, &playerz, sizeof(playerz));
 				pBuffer += sizeof(playerz);
 				bufferSize += sizeof(playerz);
+				//needed to tell NPC vs PC corpses
+				int deity = spawn->Deity;
+				memcpy(pBuffer, &deity, sizeof(deity));
+				pBuffer += sizeof(deity);
+				bufferSize += sizeof(deity);
 
 
 				//copy over the array
