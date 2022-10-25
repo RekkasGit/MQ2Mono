@@ -784,13 +784,33 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
  */
 PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
 {
+	//stolen from the lua plugin
+	std::string_view line = Line;
+	char line_char[MAX_STRING] = { 0 };
+
+	if (line.find_first_of('\x12') != std::string::npos)
+	{
+		CXStr line_str(line);
+		line_str = CleanItemTags(line_str, false);
+		StripMQChat(line_str, line_char);
+	}
+	else
+	{
+		StripMQChat(line, line_char);
+	}
+
+	// since we initialized to 0, we know that any remaining members will be 0, so just in case we Get an overflow, re-set the last character to 0
+	line_char[MAX_STRING - 1] = 0;
+	//end of of the robbery. 
+
+
 	for (auto i : monoAppDomains)
 	{
 		//Call the main method in this code
 		if (i.second.m_appDomain && i.second.m_OnIncomingChat)
 		{
 			mono_domain_set(i.second.m_appDomain, false);
-			MonoString* monoLine = mono_string_new(i.second.m_appDomain, Line);
+			MonoString* monoLine = mono_string_new(i.second.m_appDomain, line_char);
 			void* params[1] =
 			{
 				monoLine
