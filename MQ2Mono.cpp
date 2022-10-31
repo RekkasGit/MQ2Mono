@@ -328,7 +328,7 @@ bool InitAppDomain(std::string appDomainName)
 	mono_domain_set(appDomain, false);
 
 
-	std::string fileName = "Core.dll";
+	std::string fileName = (appDomainName+".dll");
 	std::string assemblypath = (monoDir + "\\macros\\" + appDomainName + "\\");
 
 	bool filepathExists = std::filesystem::exists(assemblypath + fileName);
@@ -414,7 +414,7 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 		GetArg(szParam2, szLine, 2);
 	}
-	WriteChatf("\arMQ2Mono\au::\at Command issued.");
+	//WriteChatf("\arMQ2Mono\au::\at Command issued.");
 	//WriteChatf(szParam1);
 	//WriteChatf(szParam2);
 	if (ci_equals(szParam1, "list"))
@@ -425,6 +425,7 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 			WriteChatf(i.second.m_appDomainName.c_str());
 		}
 		WriteChatf("\arMQ2Mono\au::\at End List.");
+		return;
 	
 	}
 
