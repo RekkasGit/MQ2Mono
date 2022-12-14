@@ -1,5 +1,5 @@
 // MQ2Mono.cpp : Defines the entry point for the DLL application.
-//
+// Created by Rekka of Lazarus
 
 // PLUGIN_API is only to be used for callbacks.  All existing callbacks at this time
 // are shown below. Remove the ones your plugin does not use.  Always use Initialize
@@ -22,6 +22,7 @@ PLUGIN_VERSION(0.1);
  std::string monoDir;
  std::string monoRuntimeDir;
  bool initialized = false;
+ bool previousCommand = false; //a command was issued on this call.
 
  //define methods exposde to the plugin to be executed
  void mono_Echo(MonoString* string);
@@ -229,6 +230,8 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 			mono_domain_set(domainToUnload, false);
 			mono_runtime_invoke(monoAppDomains[appDomainName].m_OnStop, monoAppDomains[appDomainName].m_classInstance, nullptr, nullptr);
 		}
+		//give time for the threads to die
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		//clean up any commands we have registered
 		monoAppDomains[appDomainName].ClearCommands();
 
@@ -257,9 +260,6 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 
 
 		mono_domain_set(mono_get_root_domain(), false);
-
-
-	
 
 		//mono_thread_pop_appdomain_ref();
 		mono_domain_unload(domainToUnload);
@@ -510,6 +510,7 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
+	
 	if (!initialized)
 	{
 		InitMono();
@@ -533,7 +534,18 @@ PLUGIN_API void InitializePlugin()
 PLUGIN_API void ShutdownPlugin()
 {
 	
-	DebugSpewAlways("MQ2Mono::Shutting down");
+	// DebugSpewAlways("MQ2Mono::OnUnloadPlugin(%s)", Name);
+	/// <summary>
+	/// for future me
+	/// https://github.com/mono/mono/issues/13557
+	/// In general, to reload assemblies you should be running the assembly in a new appdomain 
+	/// (this will affect how you organize your application) and then unloading the domain to unload the old assemblies. 
+	/// Anything else is not supported by Mono and you may have unpredictable results.
+	/// </summary>
+	/// 
+	UnloadAllAppDomains();
+	mono_jit_cleanup(mono_get_root_domain());
+	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
 	// Examples:
 	// RemoveCommand("/mycommand");
 	// RemoveXMLFile("MQUI_MyXMLFile.xml");
@@ -631,7 +643,7 @@ PLUGIN_API void SetGameState(int GameState)
  */
 PLUGIN_API void OnPulse()
 {	
-
+	previousCommand = false;
 	if (appDomainProcessQueue.size() < 1) return;
 
 	std::chrono::steady_clock::time_point proccessingTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
@@ -687,6 +699,10 @@ PLUGIN_API void OnPulse()
 					mono_domain_set(i->second.m_appDomain, false);
 					mono_runtime_invoke(i->second.m_OnPulseMethod, i->second.m_classInstance, nullptr, nullptr);
 				}
+			}
+			if (previousCommand)
+			{	//we did a command on this pulse, break out so it can be executed and then the next script can get a chance to run
+				break;
 			}
 			//check if we have spent the specified time N-ms, or we have processed the entire queue kick out
 			if (std::chrono::steady_clock::now() > (proccessingTimer + std::chrono::milliseconds(_milisecondsToProcess)) || count >= appDomainProcessQueue.size())
@@ -1006,18 +1022,7 @@ PLUGIN_API void OnLoadPlugin(const char* Name)
 PLUGIN_API void OnUnloadPlugin(const char* Name)
 {
 	
-	// DebugSpewAlways("MQ2Mono::OnUnloadPlugin(%s)", Name);
-	/// <summary>
-	/// for future me
-	/// https://github.com/mono/mono/issues/13557
-	/// In general, to reload assemblies you should be running the assembly in a new appdomain 
-	/// (this will affect how you organize your application) and then unloading the domain to unload the old assemblies. 
-	/// Anything else is not supported by Mono and you may have unpredictable results.
-	/// </summary>
-	/// 
-	UnloadAllAppDomains();
-	mono_jit_cleanup(mono_get_root_domain());
-	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
+	
 	
 }
 void OnCommand(std::string command)
@@ -1070,7 +1075,7 @@ static void mono_RemoveCommand(MonoString* text)
 		domainInfo.RemoveCommand(str);
 	}
 }
-//TODO: change all m_ variables to a collection of them
+
 static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 {
 	char* cppString = mono_string_to_utf8(name);
@@ -1188,6 +1193,7 @@ static void mono_DoCommand(MonoString* text)
 	std::string str(cppString);
 	mono_free(cppString);
 	HideDoCommand(pLocalPlayer, str.c_str(), false);
+	previousCommand = true;
 
 }
 static MonoString* mono_ParseTLO(MonoString* text)
