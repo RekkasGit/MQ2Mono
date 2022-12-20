@@ -83,7 +83,7 @@ PLUGIN_VERSION(0.1);
 		 {
 			 m_CommandList.push_back(commandName);
 
-			 AddFunction(commandName.c_str(), [this, commandName](PlayerClient*, const char* args) -> void
+			 mq::AddCommand(commandName.c_str(), [this, commandName](PlayerClient*, const char* args) -> void
 				 {
 
 					 if (this->m_appDomain)
