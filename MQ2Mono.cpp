@@ -767,7 +767,7 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
 	for (auto i : monoAppDomains)
 	{
 		//Call the main method in this code
-		if (i.second.m_appDomain && i.second.m_OnIncomingChat)
+		if (i.second.m_appDomain && i.second.m_OnWriteChatColor)
 		{
 			mono_domain_set(i.second.m_appDomain, false);
 
