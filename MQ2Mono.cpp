@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.1);
+PLUGIN_VERSION(0.2);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -44,6 +44,9 @@ PLUGIN_VERSION(0.1);
  void UnloadAllAppDomains();
  void mono_GetSpawns();
  bool mono_GetRunNextCommand();
+ MonoString* mono_GetFocusedWindowName();
+ MonoString* mono_GetMQ2MonoVersion();
+ std::string version = "0.2";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -165,12 +168,6 @@ static std::chrono::steady_clock::time_point PulseTimer = std::chrono::steady_cl
 
 void InitMono()
 {
-	//32vs64bit? necessary? or just have that version of the download folder? currently using 32bit
-	/*char* options[1];
-		options[0] = (char*)malloc(50 * sizeof(char));
-		strcpy(options[0], "--arch=32");
-		mono_jit_parse_options(1, (char**)options);
-		*/
 
 	//setup mono macro directory + runtime directory
 	monoDir = std::filesystem::path(gPathMQRoot).u8string();
@@ -201,6 +198,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_RemoveCommand", &mono_RemoveCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns", &mono_GetSpawns);
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
+	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
+	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
+
 	
 	//I'm GUI stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
@@ -428,7 +428,12 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 		return;
 	
 	}
+	if (ci_equals(szParam1, "version"))
+	{
+		WriteChatf(("\arMQ2Mono\au::\at Version:"+version).c_str());
+		return;
 
+	}
 	if (ci_equals(szParam1, "unload") || ci_equals(szParam1, "stop"))
 	{
 		if (strlen(szParam2))
@@ -507,6 +512,75 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 	
 
 }
+
+class MQ2MonoBuffInfo* pMonoBuffInfo = nullptr;
+
+class MQ2MonoBuffInfo : public MQ2Type
+{
+public:
+	enum BuffInfoMembers
+	{
+		Buffs,
+		ShortBuffs,
+	};
+
+	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
+	{
+		TypeMember(Buffs);
+		TypeMember(ShortBuffs);
+	}
+
+	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
+	{
+		MQTypeMember* pMember = MQ2MonoBuffInfo::FindMember(Member);
+		if (!pMember)
+			return false;
+		long SpellID;
+		char tmp[MAX_STRING] = { 0 };
+		DataTypeTemp[0] = '\0';
+		switch ((BuffInfoMembers)pMember->ID)
+		{
+		case Buffs:
+			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
+				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
+					sprintf_s(tmp, "%d:", SpellID);
+					strcat_s(DataTypeTemp, tmp);
+				}
+			}
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = mq::datatypes::pStringType;
+			return true;
+		case ShortBuffs:
+			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
+			{
+				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
+					sprintf_s(tmp, "%d:", SpellID);
+					strcat_s(DataTypeTemp, tmp);
+				}
+			}
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = mq::datatypes::pStringType;
+			return true;
+		}
+		return false;
+	}
+
+	bool ToString(MQVarPtr VarPtr, char* Destination) override
+	{
+
+		strcpy_s(Destination, MAX_STRING, "TRUE");
+		return true;
+	}
+};
+
+bool dataMonoBuffInfo(const char* szName, MQTypeVar& Dest)
+{
+	Dest.DWord = 1;
+	Dest.Type = pMonoBuffInfo;
+	return true;
+}
+
+
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
@@ -517,6 +591,9 @@ PLUGIN_API void InitializePlugin()
 
 	}
 	AddCommand("/mono", MonoCommand, 0, 1, 1);
+	AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
+	pMonoBuffInfo = new MQ2MonoBuffInfo;
+	
 	// Examples:
 	// AddCommand("/mycommand", MyCommand);
 	// AddXMLFile("MQUI_MyXMLFile.xml");
@@ -546,6 +623,9 @@ PLUGIN_API void ShutdownPlugin()
 	UnloadAllAppDomains();
 	mono_jit_cleanup(mono_get_root_domain());
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
+	RemoveCommand("/mono");
+	RemoveMQ2Data("MonoBuffInfo");
+	delete pMonoBuffInfo;
 	// Examples:
 	// RemoveCommand("/mycommand");
 	// RemoveXMLFile("MQUI_MyXMLFile.xml");
@@ -913,6 +993,7 @@ PLUGIN_API void OnRemoveGroundItem(PGROUNDITEM pGroundItem)
 PLUGIN_API void OnBeginZone()
 {
 	// DebugSpewAlways("MQ2Mono::OnBeginZone()");
+
 }
 
 /**
@@ -1223,6 +1304,23 @@ bool mono_GetRunNextCommand()
 
 	return bRunNextCommand;
 
+}
+static MonoString* mono_GetMQ2MonoVersion()
+{	
+	return mono_string_new_wrapper(version.c_str());
+}
+static MonoString* mono_GetFocusedWindowName()
+{
+	if (pWndMgr != nullptr && pWndMgr->FocusWindow != nullptr)
+	{
+		if (CXMLData* pXMLData = pWndMgr->FocusWindow->GetXMLData())
+		{
+			MonoString* returnValue;
+			returnValue = mono_string_new_wrapper(pXMLData->Name.c_str());
+			return returnValue;
+		}
+	}
+	return mono_string_new_wrapper("NULL");
 }
 /// <summary>
 /// seralize the spawn data to be sent into mono
