@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.2);
+PLUGIN_VERSION(0.21);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -46,7 +46,7 @@ PLUGIN_VERSION(0.2);
  bool mono_GetRunNextCommand();
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.2";
+ std::string version = "0.21";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -349,7 +349,15 @@ bool InitAppDomain(std::string appDomainName)
 	}
 
 	//copy it to a new directory
-	std::filesystem::copy(assemblypath, shadowDirectory, std::filesystem::copy_options::overwrite_existing);
+	try
+	{
+		std::filesystem::copy(assemblypath, shadowDirectory, std::filesystem::copy_options::overwrite_existing);
+
+	}
+	catch(...)
+	{
+		return false;
+	}
 
 	
 	csharpAssembly = mono_domain_assembly_open(appDomain, (shadowDirectory + fileName).c_str());
@@ -522,12 +530,14 @@ public:
 	{
 		Buffs,
 		ShortBuffs,
+		PetBuffs
 	};
 
 	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
 	{
 		TypeMember(Buffs);
 		TypeMember(ShortBuffs);
+		TypeMember(PetBuffs);
 	}
 
 	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
@@ -556,6 +566,21 @@ public:
 				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
 					sprintf_s(tmp, "%d:", SpellID);
 					strcat_s(DataTypeTemp, tmp);
+				}
+			}
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = mq::datatypes::pStringType;
+			return true;
+		case PetBuffs:
+			if (pPetInfoWnd != nullptr)
+			{
+				for (int index = 0; index < pPetInfoWnd->GetMaxBuffs(); ++index)
+				{
+					if (pPetInfoWnd->Buff[index] > 0)
+					{
+						sprintf_s(tmp, "%d:", pPetInfoWnd->Buff[index]);
+						strcat_s(DataTypeTemp, tmp);
+					}
 				}
 			}
 			Dest.Ptr = &DataTypeTemp[0];
