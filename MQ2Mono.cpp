@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.21);
+PLUGIN_VERSION(0.22);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -28,6 +28,7 @@ PLUGIN_VERSION(0.21);
  void mono_Echo(MonoString* string);
  MonoString* mono_ParseTLO(MonoString* string);
  void mono_DoCommand(MonoString* string);
+ void mono_DoCommandDelayed(MonoString* string);
  void mono_Delay(int milliseconds);
  bool mono_AddCommand(MonoString* string);
  void mono_ClearCommands();
@@ -46,7 +47,7 @@ PLUGIN_VERSION(0.21);
  bool mono_GetRunNextCommand();
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.21";
+ std::string version = "0.22";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -192,6 +193,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_Echo", &mono_Echo);
 	mono_add_internal_call("MonoCore.Core::mq_ParseTLO", &mono_ParseTLO);
 	mono_add_internal_call("MonoCore.Core::mq_DoCommand", &mono_DoCommand);
+	mono_add_internal_call("MonoCore.Core::mq_DoCommandDelayed", &mono_DoCommandDelayed);
 	mono_add_internal_call("MonoCore.Core::mq_Delay", &mono_Delay);
 	mono_add_internal_call("MonoCore.Core::mq_AddCommand", &mono_AddCommand);
 	mono_add_internal_call("MonoCore.Core::mq_ClearCommands", &mono_ClearCommands);
@@ -529,15 +531,21 @@ public:
 	enum BuffInfoMembers
 	{
 		Buffs,
+		BuffsDuration,
 		ShortBuffs,
-		PetBuffs
+		ShortBuffsDuration,
+		PetBuffs,
+		PetBuffsDuration
 	};
 
 	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
 	{
 		TypeMember(Buffs);
+		TypeMember(BuffsDuration);
 		TypeMember(ShortBuffs);
+		TypeMember(ShortBuffsDuration);
 		TypeMember(PetBuffs);
+		TypeMember(PetBuffsDuration);
 	}
 
 	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
@@ -560,11 +568,34 @@ public:
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = mq::datatypes::pStringType;
 			return true;
+		case BuffsDuration:
+			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
+				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
+					sprintf_s(tmp, "%d:", SpellID);
+					sprintf_s(tmp, "%d:", GetPcProfile()->GetEffect(b).Duration);
+					strcat_s(DataTypeTemp, tmp);
+				}
+			}
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = mq::datatypes::pStringType;
+			return true;
 		case ShortBuffs:
 			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
 			{
 				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
 					sprintf_s(tmp, "%d:", SpellID);
+					strcat_s(DataTypeTemp, tmp);
+				}
+			}
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = mq::datatypes::pStringType;
+			return true;
+		case ShortBuffsDuration:
+			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
+			{
+				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
+					sprintf_s(tmp, "%d:", SpellID);
+					sprintf_s(tmp, "%d:", GetPcProfile()->GetTempEffect(b).Duration);
 					strcat_s(DataTypeTemp, tmp);
 				}
 			}
@@ -1299,6 +1330,15 @@ static void mono_DoCommand(MonoString* text)
 	std::string str(cppString);
 	mono_free(cppString);
 	HideDoCommand(pLocalPlayer, str.c_str(), false);
+	previousCommand = true;
+
+}
+static void mono_DoCommandDelayed(MonoString* text)
+{
+	char* cppString = mono_string_to_utf8(text);
+	std::string str(cppString);
+	mono_free(cppString);
+	HideDoCommand(pLocalPlayer, str.c_str(), true);
 	previousCommand = true;
 
 }
