@@ -32,7 +32,8 @@ Add the Plugin: Add the plugin to your 'macroquest' solution. <br/>
 Build MQ2Mono: Compile the MQ2Mono component.<br/>
 Copy the DLL: Copy the mono-2.0-sgen.dll file into the appropriate build directory. This will be either build/bin/release/ or build/bin/debug/, depending on your build configuration.<br/>
 Make sure the macroquest.exe is present in the directory.<br/>
-
+copy resources/Mono folder into your new macroquest resources
+This folder is ~700mb contains Mono/32bit/bin .. etc .. include .. lib .. share 
 ## Other Notes
 
 Add additional notes
