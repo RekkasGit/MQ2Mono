@@ -174,7 +174,7 @@ void InitMono()
 	monoDir = std::filesystem::path(gPathMQRoot).u8string();
 	#if !defined(_M_AMD64)
 	monoRuntimeDir = monoDir + "\\resources\\mono\\32bit";
-	#elif
+	#else
 	monoRuntimeDir = monoDir + "\\resources\\mono\\64bit";
 	#endif
 
