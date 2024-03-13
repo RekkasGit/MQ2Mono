@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.22);
+PLUGIN_VERSION(0.23);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -47,7 +47,7 @@ PLUGIN_VERSION(0.22);
  bool mono_GetRunNextCommand();
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.22";
+ std::string version = "0.23";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
