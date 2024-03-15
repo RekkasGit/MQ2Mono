@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.23);
+PLUGIN_VERSION(0.24);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -44,10 +44,11 @@ PLUGIN_VERSION(0.23);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
  void mono_GetSpawns();
+ void mono_GetSpawns2();
  bool mono_GetRunNextCommand();
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.23";
+ std::string version = "0.24";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -115,7 +116,7 @@ PLUGIN_VERSION(0.23);
 	 void RemoveCommand(std::string command)
 	 {
 		 int count = 0;
-		 int processCount = this->m_CommandList.size();
+		 int processCount = static_cast<int>(this->m_CommandList.size());
 		 while (count < processCount)
 		 {
 			 count++;
@@ -199,6 +200,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_ClearCommands", &mono_ClearCommands);
 	mono_add_internal_call("MonoCore.Core::mq_RemoveCommand", &mono_RemoveCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns", &mono_GetSpawns);
+	mono_add_internal_call("MonoCore.Core::mq_GetSpawns2", &mono_GetSpawns2);
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
@@ -244,7 +246,7 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 			monoAppDomainPtrToString.erase(domainToUnload);
 			//remove from the process queue
 			int count = 0;
-			int processCount = appDomainProcessQueue.size();
+			int processCount = static_cast<int>(appDomainProcessQueue.size());
 
 			while (count < processCount)
 			{
@@ -285,7 +287,7 @@ void UnloadAllAppDomains()
 		monoAppDomainPtrToString.erase(i->second.m_appDomain);
 		//remove from the process queue
 		int count = 0;
-		int processCount = appDomainProcessQueue.size();
+		int processCount = static_cast<int>(appDomainProcessQueue.size());
 
 		while (count < processCount)
 		{
@@ -523,141 +525,143 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 }
 
-class MQ2MonoBuffInfo* pMonoBuffInfo = nullptr;
 
-class MQ2MonoBuffInfo : public MQ2Type
-{
-public:
-	enum BuffInfoMembers
-	{
-		Buffs,
-		BuffsDuration,
-		ShortBuffs,
-		ShortBuffsDuration,
-		PetBuffs,
-		PetBuffsDuration
-	};
+//this is no longer needed
+//class MQ2MonoBuffInfo* pMonoBuffInfo = nullptr;
+//
+//class MQ2MonoBuffInfo : public MQ2Type
+//{
+//public:
+//	enum BuffInfoMembers
+//	{
+//		Buffs,
+//		BuffsDuration,
+//		ShortBuffs,
+//		ShortBuffsDuration,
+//		PetBuffs,
+//		PetBuffsDuration
+//	};
+//
+//	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
+//	{
+//		TypeMember(Buffs);
+//		TypeMember(BuffsDuration);
+//		TypeMember(ShortBuffs);
+//		TypeMember(ShortBuffsDuration);
+//		TypeMember(PetBuffs);
+//		TypeMember(PetBuffsDuration);
+//	}
+//
+//	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
+//	{
+//		MQTypeMember* pMember = MQ2MonoBuffInfo::FindMember(Member);
+//		if (!pMember)
+//			return false;
+//		long SpellID;
+//		char tmp[MAX_STRING] = { 0 };
+//		DataTypeTemp[0] = '\0';
+//		switch ((BuffInfoMembers)pMember->ID)
+//		{
+//		case Buffs:
+//			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
+//				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
+//					sprintf_s(tmp, "%d:", SpellID);
+//					strcat_s(DataTypeTemp, tmp);
+//				}
+//			}
+//			Dest.Ptr = &DataTypeTemp[0];
+//			Dest.Type = mq::datatypes::pStringType;
+//			return true;
+//		case BuffsDuration:
+//			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
+//				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
+//					sprintf_s(tmp, "%d:", SpellID);
+//					sprintf_s(tmp, "%d:", GetPcProfile()->GetEffect(b).Duration);
+//					strcat_s(DataTypeTemp, tmp);
+//				}
+//			}
+//			Dest.Ptr = &DataTypeTemp[0];
+//			Dest.Type = mq::datatypes::pStringType;
+//			return true;
+//		case ShortBuffs:
+//			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
+//			{
+//				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
+//					sprintf_s(tmp, "%d:", SpellID);
+//					strcat_s(DataTypeTemp, tmp);
+//				}
+//			}
+//			Dest.Ptr = &DataTypeTemp[0];
+//			Dest.Type = mq::datatypes::pStringType;
+//			return true;
+//		case ShortBuffsDuration:
+//			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
+//			{
+//				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
+//					sprintf_s(tmp, "%d:", SpellID);
+//					sprintf_s(tmp, "%d:", GetPcProfile()->GetTempEffect(b).Duration);
+//					strcat_s(DataTypeTemp, tmp);
+//				}
+//			}
+//			Dest.Ptr = &DataTypeTemp[0];
+//			Dest.Type = mq::datatypes::pStringType;
+//			return true;
+//		case PetBuffs:
+//			if (pPetInfoWnd != nullptr)
+//			{
+//				for (int index = 0; index < pPetInfoWnd->GetMaxBuffs(); ++index)
+//				{
+//					if (pPetInfoWnd->Buff[index] > 0)
+//					{
+//						sprintf_s(tmp, "%d:", pPetInfoWnd->Buff[index]);
+//						strcat_s(DataTypeTemp, tmp);
+//					}
+//				}
+//			}
+//			Dest.Ptr = &DataTypeTemp[0];
+//			Dest.Type = mq::datatypes::pStringType;
+//			return true;
+//		}
+//		return false;
+//	}
+//
+//	bool ToString(MQVarPtr VarPtr, char* Destination) override
+//	{
+//
+//		strcpy_s(Destination, MAX_STRING, "TRUE");
+//		return true;
+//	}
+//};
 
-	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
-	{
-		TypeMember(Buffs);
-		TypeMember(BuffsDuration);
-		TypeMember(ShortBuffs);
-		TypeMember(ShortBuffsDuration);
-		TypeMember(PetBuffs);
-		TypeMember(PetBuffsDuration);
-	}
-
-	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
-	{
-		MQTypeMember* pMember = MQ2MonoBuffInfo::FindMember(Member);
-		if (!pMember)
-			return false;
-		long SpellID;
-		char tmp[MAX_STRING] = { 0 };
-		DataTypeTemp[0] = '\0';
-		switch ((BuffInfoMembers)pMember->ID)
-		{
-		case Buffs:
-			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
-				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
-					sprintf_s(tmp, "%d:", SpellID);
-					strcat_s(DataTypeTemp, tmp);
-				}
-			}
-			Dest.Ptr = &DataTypeTemp[0];
-			Dest.Type = mq::datatypes::pStringType;
-			return true;
-		case BuffsDuration:
-			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
-				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
-					sprintf_s(tmp, "%d:", SpellID);
-					sprintf_s(tmp, "%d:", GetPcProfile()->GetEffect(b).Duration);
-					strcat_s(DataTypeTemp, tmp);
-				}
-			}
-			Dest.Ptr = &DataTypeTemp[0];
-			Dest.Type = mq::datatypes::pStringType;
-			return true;
-		case ShortBuffs:
-			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
-			{
-				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
-					sprintf_s(tmp, "%d:", SpellID);
-					strcat_s(DataTypeTemp, tmp);
-				}
-			}
-			Dest.Ptr = &DataTypeTemp[0];
-			Dest.Type = mq::datatypes::pStringType;
-			return true;
-		case ShortBuffsDuration:
-			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
-			{
-				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
-					sprintf_s(tmp, "%d:", SpellID);
-					sprintf_s(tmp, "%d:", GetPcProfile()->GetTempEffect(b).Duration);
-					strcat_s(DataTypeTemp, tmp);
-				}
-			}
-			Dest.Ptr = &DataTypeTemp[0];
-			Dest.Type = mq::datatypes::pStringType;
-			return true;
-		case PetBuffs:
-			if (pPetInfoWnd != nullptr)
-			{
-				for (int index = 0; index < pPetInfoWnd->GetMaxBuffs(); ++index)
-				{
-					if (pPetInfoWnd->Buff[index] > 0)
-					{
-						sprintf_s(tmp, "%d:", pPetInfoWnd->Buff[index]);
-						strcat_s(DataTypeTemp, tmp);
-					}
-				}
-			}
-			Dest.Ptr = &DataTypeTemp[0];
-			Dest.Type = mq::datatypes::pStringType;
-			return true;
-		}
-		return false;
-	}
-
-	bool ToString(MQVarPtr VarPtr, char* Destination) override
-	{
-
-		strcpy_s(Destination, MAX_STRING, "TRUE");
-		return true;
-	}
-};
-
-bool dataMonoBuffInfo(const char* szName, MQTypeVar& Dest)
-{
-	Dest.DWord = 1;
-	Dest.Type = pMonoBuffInfo;
-	return true;
-}
-
-
-PLUGIN_API void InitializePlugin()
-{
-	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
-	
-	if (!initialized)
-	{
-		InitMono();
-
-	}
-	AddCommand("/mono", MonoCommand, 0, 1, 1);
-	AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
-	pMonoBuffInfo = new MQ2MonoBuffInfo;
-	
-	// Examples:
-	// AddCommand("/mycommand", MyCommand);
-	// AddXMLFile("MQUI_MyXMLFile.xml");
-	// AddMQ2Data("mytlo", MyTLOData);
-
-
-
-}
+//bool dataMonoBuffInfo(const char* szName, MQTypeVar& Dest)
+//{
+//	Dest.DWord = 1;
+//	Dest.Type = pMonoBuffInfo;
+//	return true;
+//}
+//
+//
+//PLUGIN_API void InitializePlugin()
+//{
+//	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
+//	
+//	if (!initialized)
+//	{
+//		InitMono();
+//
+//	}
+//	AddCommand("/mono", MonoCommand, 0, 1, 1);
+//	AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
+//	pMonoBuffInfo = new MQ2MonoBuffInfo;
+//	
+//	// Examples:
+//	// AddCommand("/mycommand", MyCommand);
+//	// AddXMLFile("MQUI_MyXMLFile.xml");
+//	// AddMQ2Data("mytlo", MyTLOData);
+//
+//
+//
+//}
 /**
  * @fn ShutdownPlugin
  *
@@ -681,7 +685,7 @@ PLUGIN_API void ShutdownPlugin()
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
 	RemoveCommand("/mono");
 	RemoveMQ2Data("MonoBuffInfo");
-	delete pMonoBuffInfo;
+	//delete pMonoBuffInfo;
 	// Examples:
 	// RemoveCommand("/mycommand");
 	// RemoveXMLFile("MQUI_MyXMLFile.xml");
@@ -1389,8 +1393,9 @@ static MonoString* mono_GetFocusedWindowName()
 }
 /// <summary>
 /// seralize the spawn data to be sent into mono
+/// //why does v2 exist? because I am dumb :P had to get the correct size of some of the values and don't want to break existing things.
 /// </summary>
-static void mono_GetSpawns()
+static void mono_GetSpawns2()
 {
 
 	MonoDomain* currentDomain = mono_domain_get();
@@ -1462,7 +1467,7 @@ static void mono_GetSpawns()
 
 
 				const char* BodyDesc = GetBodyTypeDesc(BodyTypeID);
-				int BodyDescLength = strlen(BodyDesc);
+				int BodyDescLength = static_cast<int>(strlen(BodyDesc));
 				//copy the size
 				memcpy(pBuffer, &BodyDescLength, sizeof(BodyDescLength));
 				pBuffer += sizeof(BodyDescLength);
@@ -1485,7 +1490,7 @@ static void mono_GetSpawns()
 				strcpy_s(tempBuffer, spawn->Name);
 				CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
 				std::string tCleanName(tempBuffer);
-				int tCleanNameLength = tCleanName.size();
+				int tCleanNameLength = static_cast<int>(tCleanName.size());
 				//copy the size
 				memcpy(pBuffer, &tCleanNameLength, sizeof(tCleanNameLength));
 				pBuffer += sizeof(tCleanNameLength);
@@ -1506,7 +1511,7 @@ static void mono_GetSpawns()
 				pBuffer += sizeof(currentEndurance);
 				bufferSize += sizeof(currentEndurance);
 
-				int currentHps = spawn->HPCurrent;
+				int64_t currentHps = spawn->HPCurrent;
 				memcpy(pBuffer, &currentHps, sizeof(currentHps));
 				pBuffer += sizeof(currentHps);
 				bufferSize += sizeof(currentHps);
@@ -1522,7 +1527,7 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(dead);
 
 				std::string displayName(spawn->DisplayedName);
-				int displayNameLength = displayName.length();
+				int displayNameLength = static_cast<int>(displayName.length());
 				//copy the size
 				memcpy(pBuffer, &displayNameLength, sizeof(displayNameLength));
 				pBuffer += sizeof(displayNameLength);
@@ -1552,7 +1557,7 @@ static void mono_GetSpawns()
 				pBuffer += sizeof(GM);
 				bufferSize += sizeof(GM);
 
-				int guildID = spawn->GuildID;
+				int64_t guildID = spawn->GuildID;
 				memcpy(pBuffer, &guildID, sizeof(guildID));
 				pBuffer += sizeof(guildID);
 				bufferSize += sizeof(guildID);
@@ -1647,7 +1652,7 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(moving);
 
 				std::string name(spawn->Name);
-				int tNameLength = name.size();
+				int tNameLength = static_cast<int>(name.size());
 				//copy the size
 				memcpy(pBuffer, &tNameLength, sizeof(tNameLength));
 				pBuffer += sizeof(tNameLength);
@@ -1662,7 +1667,7 @@ static void mono_GetSpawns()
 				pBuffer += sizeof(isNamed);
 				bufferSize += sizeof(isNamed);
 
-				int pctHPs = spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax;
+				int64_t pctHPs = spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax;
 				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
 				pBuffer += sizeof(pctHPs);
 				bufferSize += sizeof(pctHPs);
@@ -1692,7 +1697,7 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(raceID);
 
 				std::string raceName(spawn->GetRaceString());
-				int tRaceNameLength = raceName.size();
+				int tRaceNameLength = static_cast<int>(raceName.size());
 				//copy the size
 				memcpy(pBuffer, &tRaceNameLength, sizeof(tRaceNameLength));
 				pBuffer += sizeof(tRaceNameLength);
@@ -1732,7 +1737,7 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(stunned);
 
 				std::string suffix(spawn->Suffix);
-				int tsuffixLength = suffix.size();
+				int tsuffixLength = static_cast<int>(suffix.size());
 				//copy the size
 				memcpy(pBuffer, &tsuffixLength, sizeof(tsuffixLength));
 				pBuffer += sizeof(tsuffixLength);
@@ -1758,7 +1763,7 @@ static void mono_GetSpawns()
 				bufferSize += sizeof(trader);
 
 				std::string typeDescription(GetTypeDesc(spawnType));
-				int ttypeDescriptionLength = typeDescription.size();
+				int ttypeDescriptionLength = static_cast<int>(typeDescription.size());
 				//copy the size
 				memcpy(pBuffer, &ttypeDescriptionLength, sizeof(ttypeDescriptionLength));
 				pBuffer += sizeof(ttypeDescriptionLength);
@@ -1831,6 +1836,446 @@ static void mono_GetSpawns()
 	
 }
 
+static void mono_GetSpawns()
+{
+
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		//pointer to the value in the map
+		auto& domainInfo = monoAppDomains[key];
+
+		if (!domainInfo.m_OnSetSpawns)
+		{
+			//no spawn method set.
+			return;
+		}
+
+		unsigned char buffer[1024];
+		int bufferSize = 0;
+
+		if (pSpawnManager)
+		{
+
+
+			auto spawn = pSpawnManager->FirstSpawn;
+			//get a pointer to the buffer
+			unsigned char* pBuffer = buffer;
+
+			char tempBuffer[MAX_STRING];
+			//assuming I cannot reuse this as there is no free once you call the invoke
+			MonoArray* data = mono_array_new(currentDomain, mono_get_byte_class(), sizeof(buffer));
+
+			while (spawn != nullptr)
+			{
+				//reset pointer
+				pBuffer = buffer;
+				//reset size
+				bufferSize = 0;
+
+				//fill the buffer
+				int ID = spawn->SpawnID;
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+
+				bool isAFK = (spawn->AFK != 0);
+				memcpy(pBuffer, &isAFK, sizeof(isAFK));
+				pBuffer += sizeof(isAFK);
+				bufferSize += sizeof(isAFK);
+
+				bool isAggressive = (spawn->PlayerState & 0x4 || spawn->PlayerState & 0x8);
+				memcpy(pBuffer, &isAggressive, sizeof(isAggressive));
+				pBuffer += sizeof(isAggressive);
+				bufferSize += sizeof(isAggressive);
+
+				bool isAnon = (spawn->Anon == 1);
+				memcpy(pBuffer, &isAnon, sizeof(isAnon));
+				pBuffer += sizeof(isAnon);
+				bufferSize += sizeof(isAnon);
+
+				int isBlind = spawn->Blind;
+				memcpy(pBuffer, &isBlind, sizeof(isBlind));
+				pBuffer += sizeof(isBlind);
+				bufferSize += sizeof(isBlind);
+
+				int BodyTypeID = GetBodyType(spawn);
+				memcpy(pBuffer, &BodyTypeID, sizeof(BodyTypeID));
+				pBuffer += sizeof(BodyTypeID);
+				bufferSize += sizeof(BodyTypeID);
+
+
+				const char* BodyDesc = GetBodyTypeDesc(BodyTypeID);
+				int BodyDescLength = static_cast<int>(strlen(BodyDesc));
+				//copy the size
+				memcpy(pBuffer, &BodyDescLength, sizeof(BodyDescLength));
+				pBuffer += sizeof(BodyDescLength);
+				bufferSize += sizeof(BodyDescLength);
+				//copy the data
+				memcpy(pBuffer, BodyDesc, BodyDescLength);
+				pBuffer += BodyDescLength;
+				bufferSize += BodyDescLength;
+
+				bool isBuyer = (spawn->Buyer != 0);
+				memcpy(pBuffer, &isBuyer, sizeof(isBuyer));
+				pBuffer += sizeof(isBuyer);
+				bufferSize += sizeof(isBuyer);
+
+				int ClassID = spawn->GetClass();
+				memcpy(pBuffer, &ClassID, sizeof(ClassID));
+				pBuffer += sizeof(ClassID);
+				bufferSize += sizeof(ClassID);
+
+				strcpy_s(tempBuffer, spawn->Name);
+				CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
+				std::string tCleanName(tempBuffer);
+				int tCleanNameLength = static_cast<int>(tCleanName.size());
+				//copy the size
+				memcpy(pBuffer, &tCleanNameLength, sizeof(tCleanNameLength));
+				pBuffer += sizeof(tCleanNameLength);
+				bufferSize += sizeof(tCleanNameLength);
+				//copy the data
+				memcpy(pBuffer, tCleanName.c_str(), tCleanNameLength);
+				pBuffer += tCleanNameLength;
+				bufferSize += tCleanNameLength;
+
+
+				int conColorID = ConColor(spawn);
+				memcpy(pBuffer, &conColorID, sizeof(conColorID));
+				pBuffer += sizeof(conColorID);
+				bufferSize += sizeof(conColorID);
+
+				int currentEndurance = spawn->GetCurrentEndurance();
+				memcpy(pBuffer, &currentEndurance, sizeof(currentEndurance));
+				pBuffer += sizeof(currentEndurance);
+				bufferSize += sizeof(currentEndurance);
+
+				int currentHps = static_cast<int>(spawn->HPCurrent);
+				memcpy(pBuffer, &currentHps, sizeof(currentHps));
+				pBuffer += sizeof(currentHps);
+				bufferSize += sizeof(currentHps);
+
+				int currentMana = spawn->GetCurrentMana();
+				memcpy(pBuffer, &currentMana, sizeof(currentMana));
+				pBuffer += sizeof(currentMana);
+				bufferSize += sizeof(currentMana);
+
+				bool dead = (spawn->StandState == STANDSTATE_DEAD);
+				memcpy(pBuffer, &dead, sizeof(dead));
+				pBuffer += sizeof(dead);
+				bufferSize += sizeof(dead);
+
+				std::string displayName(spawn->DisplayedName);
+				int displayNameLength = static_cast<int>(displayName.length());
+				//copy the size
+				memcpy(pBuffer, &displayNameLength, sizeof(displayNameLength));
+				pBuffer += sizeof(displayNameLength);
+				bufferSize += sizeof(displayNameLength);
+				//copy the data
+				memcpy(pBuffer, displayName.c_str(), displayNameLength);
+				pBuffer += displayNameLength;
+				bufferSize += displayNameLength;
+
+				bool ducking = (spawn->StandState == STANDSTATE_DUCK);
+				memcpy(pBuffer, &ducking, sizeof(ducking));
+				pBuffer += sizeof(ducking);
+				bufferSize += sizeof(ducking);
+
+				bool feigning = (spawn->StandState == STANDSTATE_FEIGN);
+				memcpy(pBuffer, &feigning, sizeof(feigning));
+				pBuffer += sizeof(feigning);
+				bufferSize += sizeof(feigning);
+
+				int genderId = spawn->GetGender();
+				memcpy(pBuffer, &genderId, sizeof(genderId));
+				pBuffer += sizeof(genderId);
+				bufferSize += sizeof(genderId);
+
+				bool GM = (spawn->GM != 0);
+				memcpy(pBuffer, &GM, sizeof(GM));
+				pBuffer += sizeof(GM);
+				bufferSize += sizeof(GM);
+
+				int guildID = static_cast<int>(spawn->GuildID);
+				memcpy(pBuffer, &guildID, sizeof(guildID));
+				pBuffer += sizeof(guildID);
+				bufferSize += sizeof(guildID);
+
+				float heading = spawn->Heading * 0.703125f;
+				memcpy(pBuffer, &heading, sizeof(heading));
+				pBuffer += sizeof(heading);
+				bufferSize += sizeof(heading);
+
+				float height = spawn->AvatarHeight;
+				memcpy(pBuffer, &height, sizeof(height));
+				pBuffer += sizeof(height);
+				bufferSize += sizeof(height);
+
+
+
+				bool Invs = (spawn->HideMode != 0);
+				memcpy(pBuffer, &Invs, sizeof(Invs));
+				pBuffer += sizeof(Invs);
+				bufferSize += sizeof(Invs);
+
+				bool isSummoned = spawn->bSummoned;
+				memcpy(pBuffer, &isSummoned, sizeof(isSummoned));
+				pBuffer += sizeof(isSummoned);
+				bufferSize += sizeof(isSummoned);
+
+				int level = spawn->Level;
+				memcpy(pBuffer, &level, sizeof(level));
+				pBuffer += sizeof(level);
+				bufferSize += sizeof(level);
+
+				//TODO:possible bug? default to false for now
+				// https://github.com/macroquest/macroquest/issues/632
+				//bool levitation = (spawn->mPlayerPhysicsClient.Levitate == 2);
+				bool levitation = false;
+				memcpy(pBuffer, &levitation, sizeof(levitation));
+				pBuffer += sizeof(levitation);
+				bufferSize += sizeof(levitation);
+
+				bool linkDead = spawn->Linkdead;
+				memcpy(pBuffer, &linkDead, sizeof(linkDead));
+				pBuffer += sizeof(linkDead);
+				bufferSize += sizeof(linkDead);
+
+				float look = spawn->CameraAngle;
+				memcpy(pBuffer, &look, sizeof(look));
+				pBuffer += sizeof(look);
+				bufferSize += sizeof(look);
+
+				int master = spawn->MasterID;
+				memcpy(pBuffer, &master, sizeof(master));
+				pBuffer += sizeof(master);
+				bufferSize += sizeof(master);
+
+				int maxEndurance = spawn->GetMaxEndurance();
+				memcpy(pBuffer, &maxEndurance, sizeof(maxEndurance));
+				pBuffer += sizeof(maxEndurance);
+				bufferSize += sizeof(maxEndurance);
+
+				auto spawnType = GetSpawnType(spawn);
+
+				float maxRange = 0.0;
+				if (spawnType != ITEM)
+				{
+					maxRange = get_melee_range(spawn, pControlledPlayer);
+				}
+				memcpy(pBuffer, &maxRange, sizeof(maxRange));
+				pBuffer += sizeof(maxRange);
+				bufferSize += sizeof(maxRange);
+
+				float maxRanageTo = 0.0;
+				if (spawnType != ITEM)
+				{
+					maxRanageTo = get_melee_range(pControlledPlayer, spawn);
+				}
+				memcpy(pBuffer, &maxRanageTo, sizeof(maxRanageTo));
+				pBuffer += sizeof(maxRanageTo);
+				bufferSize += sizeof(maxRanageTo);
+
+				bool mount = false;
+				if (spawn->Mount)
+				{
+					mount = true;
+				}
+				memcpy(pBuffer, &mount, sizeof(mount));
+				pBuffer += sizeof(mount);
+				bufferSize += sizeof(mount);
+
+				bool moving = (fabs(spawn->SpeedRun) > 0.0f);
+				memcpy(pBuffer, &moving, sizeof(moving));
+				pBuffer += sizeof(moving);
+				bufferSize += sizeof(moving);
+
+				std::string name(spawn->Name);
+				int tNameLength = static_cast<int>(name.size());
+				//copy the size
+				memcpy(pBuffer, &tNameLength, sizeof(tNameLength));
+				pBuffer += sizeof(tNameLength);
+				bufferSize += sizeof(tNameLength);
+				//copy the data
+				memcpy(pBuffer, name.c_str(), tNameLength);
+				pBuffer += tNameLength;
+				bufferSize += tNameLength;
+
+				bool isNamed = IsNamed(spawn);
+				memcpy(pBuffer, &isNamed, sizeof(isNamed));
+				pBuffer += sizeof(isNamed);
+				bufferSize += sizeof(isNamed);
+
+				int pctHPs = static_cast<int>(spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax);
+				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
+				pBuffer += sizeof(pctHPs);
+				bufferSize += sizeof(pctHPs);
+
+				int pctMana = 0;
+				if (int maxmana = spawn->GetMaxMana())
+				{
+					pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+				}
+				memcpy(pBuffer, &pctMana, sizeof(pctMana));
+				pBuffer += sizeof(pctMana);
+				bufferSize += sizeof(pctMana);
+
+				int petID = spawn->PetID;
+				memcpy(pBuffer, &petID, sizeof(petID));
+				pBuffer += sizeof(petID);
+				bufferSize += sizeof(petID);
+
+				int playerState = spawn->PlayerState;
+				memcpy(pBuffer, &playerState, sizeof(playerState));
+				pBuffer += sizeof(playerState);
+				bufferSize += sizeof(playerState);
+
+				int raceID = spawn->GetRace();
+				memcpy(pBuffer, &raceID, sizeof(raceID));
+				pBuffer += sizeof(raceID);
+				bufferSize += sizeof(raceID);
+
+				std::string raceName(spawn->GetRaceString());
+				int tRaceNameLength = static_cast<int>(raceName.size());
+				//copy the size
+				memcpy(pBuffer, &tRaceNameLength, sizeof(tRaceNameLength));
+				pBuffer += sizeof(tRaceNameLength);
+				bufferSize += sizeof(tRaceNameLength);
+				//copy the data
+				memcpy(pBuffer, raceName.c_str(), tRaceNameLength);
+				pBuffer += tRaceNameLength;
+				bufferSize += tRaceNameLength;
+
+				bool rolePlaying = (spawn->Anon == 2);
+				memcpy(pBuffer, &rolePlaying, sizeof(rolePlaying));
+				pBuffer += sizeof(rolePlaying);
+				bufferSize += sizeof(rolePlaying);
+
+				bool sitting = (spawn->StandState == STANDSTATE_SIT);
+				memcpy(pBuffer, &sitting, sizeof(sitting));
+				pBuffer += sizeof(sitting);
+				bufferSize += sizeof(sitting);
+
+				bool sneaking = (spawn->Sneak);
+				memcpy(pBuffer, &sneaking, sizeof(sneaking));
+				pBuffer += sizeof(sneaking);
+				bufferSize += sizeof(sneaking);
+
+				bool standing = (spawn->StandState == STANDSTATE_STAND);
+				memcpy(pBuffer, &standing, sizeof(standing));
+				pBuffer += sizeof(standing);
+				bufferSize += sizeof(standing);
+
+				bool stunned = false;
+				if (spawn->PlayerState & 0x20)
+				{
+					stunned = true;
+				}
+				memcpy(pBuffer, &stunned, sizeof(stunned));
+				pBuffer += sizeof(stunned);
+				bufferSize += sizeof(stunned);
+
+				std::string suffix(spawn->Suffix);
+				int tsuffixLength = static_cast<int>(suffix.size());
+				//copy the size
+				memcpy(pBuffer, &tsuffixLength, sizeof(tsuffixLength));
+				pBuffer += sizeof(tsuffixLength);
+				bufferSize += sizeof(tsuffixLength);
+				//copy the data
+				memcpy(pBuffer, suffix.c_str(), tsuffixLength);
+				pBuffer += tsuffixLength;
+				bufferSize += tsuffixLength;
+
+				bool targetable = spawn->Targetable;
+				memcpy(pBuffer, &targetable, sizeof(targetable));
+				pBuffer += sizeof(targetable);
+				bufferSize += sizeof(targetable);
+
+				int targetoftargetID = spawn->TargetOfTarget;
+				memcpy(pBuffer, &targetoftargetID, sizeof(targetoftargetID));
+				pBuffer += sizeof(targetoftargetID);
+				bufferSize += sizeof(targetoftargetID);
+
+				bool trader = (spawn->Trader != 0);
+				memcpy(pBuffer, &trader, sizeof(trader));
+				pBuffer += sizeof(trader);
+				bufferSize += sizeof(trader);
+
+				std::string typeDescription(GetTypeDesc(spawnType));
+				int ttypeDescriptionLength = static_cast<int>(typeDescription.size());
+				//copy the size
+				memcpy(pBuffer, &ttypeDescriptionLength, sizeof(ttypeDescriptionLength));
+				pBuffer += sizeof(ttypeDescriptionLength);
+				bufferSize += sizeof(ttypeDescriptionLength);
+				//copy the data
+				memcpy(pBuffer, typeDescription.c_str(), ttypeDescriptionLength);
+				pBuffer += ttypeDescriptionLength;
+				bufferSize += ttypeDescriptionLength;
+
+				bool underwater = (spawn->UnderWater == LiquidType_Water);
+				memcpy(pBuffer, &underwater, sizeof(underwater));
+				pBuffer += sizeof(underwater);
+				bufferSize += sizeof(underwater);
+
+				float x = spawn->X;
+				memcpy(pBuffer, &x, sizeof(x));
+				pBuffer += sizeof(x);
+				bufferSize += sizeof(x);
+
+				float y = spawn->Y;
+				memcpy(pBuffer, &y, sizeof(y));
+				pBuffer += sizeof(y);
+				bufferSize += sizeof(y);
+
+				float z = spawn->Z;
+				memcpy(pBuffer, &z, sizeof(z));
+				pBuffer += sizeof(z);
+				bufferSize += sizeof(z);
+
+				//so distance calculations can be done
+				float playerx = pControlledPlayer->X;
+				memcpy(pBuffer, &playerx, sizeof(playerx));
+				pBuffer += sizeof(playerx);
+				bufferSize += sizeof(playerx);
+
+				float playery = pControlledPlayer->Y;
+				memcpy(pBuffer, &playery, sizeof(playery));
+				pBuffer += sizeof(playery);
+				bufferSize += sizeof(playery);
+
+				float playerz = pControlledPlayer->Z;
+				memcpy(pBuffer, &playerz, sizeof(playerz));
+				pBuffer += sizeof(playerz);
+				bufferSize += sizeof(playerz);
+				//needed to tell NPC vs PC corpses
+				int deity = spawn->Deity;
+				memcpy(pBuffer, &deity, sizeof(deity));
+				pBuffer += sizeof(deity);
+				bufferSize += sizeof(deity);
+
+
+				//copy over the array
+				for (auto i = 0; i < bufferSize; i++) {
+					mono_array_set(data, uint8_t, i, buffer[i]);
+				}
+				void* params[2] =
+				{
+					data,
+					&bufferSize
+				};
+				mono_runtime_invoke(domainInfo.m_OnSetSpawns, domainInfo.m_classInstance, params, nullptr);
+
+				spawn = spawn->GetNext();
+			}
+		}
+
+
+	}
+
+
+}
 #pragma endregion Exposed methods to plugin
 
 
