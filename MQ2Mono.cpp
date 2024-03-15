@@ -641,27 +641,27 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 //}
 //
 //
-//PLUGIN_API void InitializePlugin()
-//{
-//	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
-//	
-//	if (!initialized)
-//	{
-//		InitMono();
-//
-//	}
-//	AddCommand("/mono", MonoCommand, 0, 1, 1);
-//	AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
-//	pMonoBuffInfo = new MQ2MonoBuffInfo;
-//	
-//	// Examples:
-//	// AddCommand("/mycommand", MyCommand);
-//	// AddXMLFile("MQUI_MyXMLFile.xml");
-//	// AddMQ2Data("mytlo", MyTLOData);
-//
-//
-//
-//}
+PLUGIN_API void InitializePlugin()
+{
+	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
+	
+	if (!initialized)
+	{
+		InitMono();
+
+	}
+	AddCommand("/mono", MonoCommand, 0, 1, 1);
+	//AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
+	//pMonoBuffInfo = new MQ2MonoBuffInfo;
+	
+	// Examples:
+	// AddCommand("/mycommand", MyCommand);
+	// AddXMLFile("MQUI_MyXMLFile.xml");
+	// AddMQ2Data("mytlo", MyTLOData);
+
+
+
+}
 /**
  * @fn ShutdownPlugin
  *
