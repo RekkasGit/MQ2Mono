@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.24);
+PLUGIN_VERSION(0.25);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -20,6 +20,7 @@ PLUGIN_VERSION(0.24);
  */
  bool ShowMQ2MonoWindow = true;
  std::string monoDir;
+ std::string rootDir;
  std::string monoRuntimeDir;
  bool initialized = false;
  bool previousCommand = false; //a command was issued on this call.
@@ -48,8 +49,8 @@ PLUGIN_VERSION(0.24);
  bool mono_GetRunNextCommand();
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.24";
- 
+ std::string version = "0.25";
+
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
  /// we need to keep track of.
@@ -171,18 +172,34 @@ static std::chrono::steady_clock::time_point PulseTimer = std::chrono::steady_cl
 void InitMono()
 {
 
+	if (initialized) return;
+
 	//setup mono macro directory + runtime directory
-	monoDir = std::filesystem::path(gPathMQRoot).u8string();
+	rootDir = std::filesystem::path(gPathMQRoot).u8string();
+	monoDir = rootDir + "\\Mono";
+	
+	bool sgenExists = std::filesystem::exists(rootDir +"\\mono-2.0-sgen.dll");
+	if (!sgenExists)
+	{
+		WriteChatf("\arMQ2Mono\au::\at Cannot find mono-2.0-sgen.dll, cannot load.");
+		return;
+	}
+
+
 	#if !defined(_M_AMD64)
-	monoRuntimeDir = monoDir + "\\resources\\mono\\32bit";
+	monoRuntimeDir = rootDir + "\\resources\\mono\\32bit";
 	#else
-	monoRuntimeDir = monoDir + "\\resources\\mono\\64bit";
+	monoRuntimeDir = rootDir + "\\resources\\mono\\64bit";
 	#endif
 
-	monoDir = monoDir + "\\Mono";
+	std::filesystem::path monoRuntimeDirPath = monoRuntimeDir;
 
-
-	
+	bool runtimeExists = std::filesystem::is_directory(monoRuntimeDirPath.parent_path());
+	if (!runtimeExists)
+	{
+		WriteChatf("\arMQ2Mono\au::\at Cannot find mono runtime in resources folder (\\resources\\mono).");
+		return;
+	}
 
 	mono_set_dirs((monoRuntimeDir + "\\lib").c_str(), (monoRuntimeDir + "\\etc").c_str());
 	_rootDomain = mono_jit_init("Mono_Domain");
@@ -426,6 +443,17 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 		GetArg(szParam2, szLine, 2);
 	}
+
+
+	if (!initialized)
+	{
+		InitMono();
+		if (!initialized)
+		{
+			return;
+		}
+	}
+
 	//WriteChatf("\arMQ2Mono\au::\at Command issued.");
 	//WriteChatf(szParam1);
 	//WriteChatf(szParam2);
@@ -525,122 +553,6 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 }
 
-
-//this is no longer needed
-//class MQ2MonoBuffInfo* pMonoBuffInfo = nullptr;
-//
-//class MQ2MonoBuffInfo : public MQ2Type
-//{
-//public:
-//	enum BuffInfoMembers
-//	{
-//		Buffs,
-//		BuffsDuration,
-//		ShortBuffs,
-//		ShortBuffsDuration,
-//		PetBuffs,
-//		PetBuffsDuration
-//	};
-//
-//	MQ2MonoBuffInfo() :MQ2Type("MonoBuffList")
-//	{
-//		TypeMember(Buffs);
-//		TypeMember(BuffsDuration);
-//		TypeMember(ShortBuffs);
-//		TypeMember(ShortBuffsDuration);
-//		TypeMember(PetBuffs);
-//		TypeMember(PetBuffsDuration);
-//	}
-//
-//	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
-//	{
-//		MQTypeMember* pMember = MQ2MonoBuffInfo::FindMember(Member);
-//		if (!pMember)
-//			return false;
-//		long SpellID;
-//		char tmp[MAX_STRING] = { 0 };
-//		DataTypeTemp[0] = '\0';
-//		switch ((BuffInfoMembers)pMember->ID)
-//		{
-//		case Buffs:
-//			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
-//				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
-//					sprintf_s(tmp, "%d:", SpellID);
-//					strcat_s(DataTypeTemp, tmp);
-//				}
-//			}
-//			Dest.Ptr = &DataTypeTemp[0];
-//			Dest.Type = mq::datatypes::pStringType;
-//			return true;
-//		case BuffsDuration:
-//			for (int b = 0; b < NUM_LONG_BUFFS; b++) {
-//				if ((SpellID = GetPcProfile()->GetEffect(b).SpellID) > 0) {
-//					sprintf_s(tmp, "%d:", SpellID);
-//					sprintf_s(tmp, "%d:", GetPcProfile()->GetEffect(b).Duration);
-//					strcat_s(DataTypeTemp, tmp);
-//				}
-//			}
-//			Dest.Ptr = &DataTypeTemp[0];
-//			Dest.Type = mq::datatypes::pStringType;
-//			return true;
-//		case ShortBuffs:
-//			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
-//			{
-//				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
-//					sprintf_s(tmp, "%d:", SpellID);
-//					strcat_s(DataTypeTemp, tmp);
-//				}
-//			}
-//			Dest.Ptr = &DataTypeTemp[0];
-//			Dest.Type = mq::datatypes::pStringType;
-//			return true;
-//		case ShortBuffsDuration:
-//			for (int b = 0; b < NUM_TEMP_BUFFS; b++)
-//			{
-//				if ((SpellID = GetPcProfile()->GetTempEffect(b).SpellID) > 0) {
-//					sprintf_s(tmp, "%d:", SpellID);
-//					sprintf_s(tmp, "%d:", GetPcProfile()->GetTempEffect(b).Duration);
-//					strcat_s(DataTypeTemp, tmp);
-//				}
-//			}
-//			Dest.Ptr = &DataTypeTemp[0];
-//			Dest.Type = mq::datatypes::pStringType;
-//			return true;
-//		case PetBuffs:
-//			if (pPetInfoWnd != nullptr)
-//			{
-//				for (int index = 0; index < pPetInfoWnd->GetMaxBuffs(); ++index)
-//				{
-//					if (pPetInfoWnd->Buff[index] > 0)
-//					{
-//						sprintf_s(tmp, "%d:", pPetInfoWnd->Buff[index]);
-//						strcat_s(DataTypeTemp, tmp);
-//					}
-//				}
-//			}
-//			Dest.Ptr = &DataTypeTemp[0];
-//			Dest.Type = mq::datatypes::pStringType;
-//			return true;
-//		}
-//		return false;
-//	}
-//
-//	bool ToString(MQVarPtr VarPtr, char* Destination) override
-//	{
-//
-//		strcpy_s(Destination, MAX_STRING, "TRUE");
-//		return true;
-//	}
-//};
-
-//bool dataMonoBuffInfo(const char* szName, MQTypeVar& Dest)
-//{
-//	Dest.DWord = 1;
-//	Dest.Type = pMonoBuffInfo;
-//	return true;
-//}
-//
-//
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
@@ -648,19 +560,9 @@ PLUGIN_API void InitializePlugin()
 	if (!initialized)
 	{
 		InitMono();
-
 	}
 	AddCommand("/mono", MonoCommand, 0, 1, 1);
-	//AddMQ2Data("MonoBuffInfo", dataMonoBuffInfo);
-	//pMonoBuffInfo = new MQ2MonoBuffInfo;
 	
-	// Examples:
-	// AddCommand("/mycommand", MyCommand);
-	// AddXMLFile("MQUI_MyXMLFile.xml");
-	// AddMQ2Data("mytlo", MyTLOData);
-
-
-
 }
 /**
  * @fn ShutdownPlugin
@@ -679,17 +581,14 @@ PLUGIN_API void ShutdownPlugin()
 	/// (this will affect how you organize your application) and then unloading the domain to unload the old assemblies. 
 	/// Anything else is not supported by Mono and you may have unpredictable results.
 	/// </summary>
-	/// 
-	UnloadAllAppDomains();
-	mono_jit_cleanup(mono_get_root_domain());
+	
+	if (initialized)
+	{
+		UnloadAllAppDomains();
+		mono_jit_cleanup(mono_get_root_domain());
+	}
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
 	RemoveCommand("/mono");
-	RemoveMQ2Data("MonoBuffInfo");
-	//delete pMonoBuffInfo;
-	// Examples:
-	// RemoveCommand("/mycommand");
-	// RemoveXMLFile("MQUI_MyXMLFile.xml");
-	// RemoveMQ2Data("mytlo");
 }
 
 /**
@@ -783,6 +682,8 @@ PLUGIN_API void SetGameState(int GameState)
  */
 PLUGIN_API void OnPulse()
 {	
+	if (!initialized) return;
+
 	previousCommand = false;
 	if (appDomainProcessQueue.size() < 1) return;
 
@@ -883,6 +784,8 @@ PLUGIN_API void OnPulse()
  */
 PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
 {	
+	if (!initialized) return;
+
 	if (monoAppDomains.size() == 0) return;
 
 	//stolen from the lua plugin
@@ -941,6 +844,9 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
  */
 PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
 {
+	if (!initialized) return false;
+	if (monoAppDomains.size() == 0) return false;
+
 	//stolen from the lua plugin
 	std::string_view line = Line;
 	char line_char[MAX_STRING] = { 0 };
@@ -1094,6 +1000,11 @@ PLUGIN_API void OnZoned()
  */
 PLUGIN_API void OnUpdateImGui()
 {
+	//not currently using this
+	return;
+	if (!initialized) return;
+	if (monoAppDomains.size() == 0) return;
+
 	for (auto i : monoAppDomains)
 	{
 		//Call the main method in this code
@@ -1216,7 +1127,8 @@ static void mono_RemoveCommand(MonoString* text)
 		domainInfo.RemoveCommand(str);
 	}
 }
-
+#pragma region
+//IMGUI test code, not really being used atm as i went into another direction
 static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 {
 	char* cppString = mono_string_to_utf8(name);
@@ -1305,6 +1217,7 @@ static void mono_ImGUI_End()
 {
 	ImGui::End();
 }
+#pragma endregion test code for ImGUI, went into another direction
 
 static void mono_Delay(int milliseconds)
 {
@@ -1393,7 +1306,7 @@ static MonoString* mono_GetFocusedWindowName()
 }
 /// <summary>
 /// seralize the spawn data to be sent into mono
-/// //why does v2 exist? because I am dumb :P had to get the correct size of some of the values and don't want to break existing things.
+/// why does v2 exist? because I am dumb :P had to get the correct size of some of the values and don't want to break existing things.
 /// </summary>
 static void mono_GetSpawns2()
 {
@@ -1835,7 +1748,8 @@ static void mono_GetSpawns2()
 
 	
 }
-
+//original version i made for EMU, keeping for now for older versions of E3N that haven't updated yet.
+//will eventually get rid of it, as its technically wrong.
 static void mono_GetSpawns()
 {
 
