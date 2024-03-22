@@ -34,21 +34,28 @@ PLUGIN_VERSION(0.26);
  bool mono_AddCommand(MonoString* string);
  void mono_ClearCommands();
  void mono_RemoveCommand(MonoString* text);
- //IMGUI calls
+ //IMGUI calls, not in use really was a test
  bool mono_ImGUI_Begin(MonoString* name, int flags);
  bool mono_ImGUI_Button(MonoString* name);
  void mono_ImGUI_End();
  boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
  void mono_ImGUI_Begin_OpenFlagSet(MonoString* name,bool open);
- //temp methods for now
+  //end temp methods
+ 
  bool InitAppDomain(std::string appDomainName);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
+
+ //yes there are two of them, yes there is a reason due to compatabilty reasons of e3n
  void mono_GetSpawns();
  void mono_GetSpawns2();
+
+ //not sure if realy needed anymore but eh, its there
  bool mono_GetRunNextCommand();
 
+ //used to get the currently focused window element
  MonoString* mono_GetFocusedWindowName();
+
  MonoString* mono_GetMQ2MonoVersion();
  std::string version = "0.26";
 
@@ -236,6 +243,7 @@ void InitMono()
 	initialized = true;
 
 }
+
 bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 {		 
 	MonoDomain* domainToUnload = nullptr;
@@ -277,15 +285,12 @@ bool UnloadAppDomain(std::string appDomainName, bool updateCollections=true)
 				}
 			}
 		}
-
 		//unload the commands
-
 
 		mono_domain_set(mono_get_root_domain(), false);
 
 		//mono_thread_pop_appdomain_ref();
 		mono_domain_unload(domainToUnload);
-		
 		
 		return true;
 	}
@@ -328,7 +333,6 @@ bool InitAppDomain(std::string appDomainName)
 	//app domain we have created for e3
 	MonoDomain* appDomain;
 	appDomain = mono_domain_create_appdomain((char*)appDomainName.c_str() , nullptr);
-	
 	
 	//core.dll information so we can bind to it
 	MonoAssembly* csharpAssembly;
@@ -558,8 +562,14 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 }
 
-class MQ2MonoMethods* pMonoQuery = nullptr;
 
+/// <summary>
+/// This is the MQ2Mono TLO, used to access the Query method for OnQuery calls to the mono application specified
+/// /echo ${MQ2Mono.Query[e3,E3Bots(Necro01).Query(ShowClass)]}
+/// here we send to the "e3" application the string "E3Bots(Necro01).Query(ShowClass)"
+/// note, you cannot do "E3Bots[Necro01].Query[ShowClass]" as [] are special characters and will truncate your data
+/// </summary>
+class MQ2MonoMethods* pMonoQuery = nullptr;
 class MQ2MonoMethods : public MQ2Type
 {
 public:
@@ -631,7 +641,6 @@ public:
 
 	bool ToString(MQVarPtr VarPtr, char* Destination) override
 	{
-
 		strcpy_s(Destination, MAX_STRING, "TRUE");
 		return true;
 	}
