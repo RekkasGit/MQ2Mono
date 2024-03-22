@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.25);
+PLUGIN_VERSION(0.26);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -47,9 +47,10 @@ PLUGIN_VERSION(0.25);
  void mono_GetSpawns();
  void mono_GetSpawns2();
  bool mono_GetRunNextCommand();
+
  MonoString* mono_GetFocusedWindowName();
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.25";
+ std::string version = "0.26";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -74,6 +75,7 @@ PLUGIN_VERSION(0.25);
 	 MonoMethod* m_OnStop = nullptr;
 	 MonoMethod* m_OnCommand = nullptr;
 	 MonoMethod* m_OnSetSpawns = nullptr;
+	 MonoMethod* m_OnQuery = nullptr;
 
 	 std::map<std::string, bool> m_IMGUI_OpenWindows;
 	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
@@ -221,7 +223,6 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
-
 	
 	//I'm GUI stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
@@ -343,6 +344,8 @@ bool InitAppDomain(std::string appDomainName)
 	MonoMethod* OnCommand;
 	MonoMethod* OnUpdateImGui;
 	MonoMethod* OnSetSpawns;
+	MonoMethod* OnQuery;
+
 	std::map<std::string, bool> IMGUI_OpenWindows;
 
 	//everything below needs to be moved out to a per application run
@@ -399,6 +402,7 @@ bool InitAppDomain(std::string appDomainName)
 	OnUpdateImGui = mono_class_get_method_from_name(classInfo, "OnUpdateImGui", 0);
 	OnCommand = mono_class_get_method_from_name(classInfo, "OnCommand", 1);
 	OnSetSpawns= mono_class_get_method_from_name(classInfo, "OnSetSpawns", 2);
+	OnQuery = mono_class_get_method_from_name(classInfo, "OnQuery", 1);
 
 	//add it to the collection
 
@@ -417,6 +421,7 @@ bool InitAppDomain(std::string appDomainName)
 	domainInfo.m_OnUpdateImGui = OnUpdateImGui;
 	domainInfo.m_OnCommand = OnCommand;
 	domainInfo.m_OnSetSpawns = OnSetSpawns;
+	domainInfo.m_OnQuery = OnQuery;
 
 	monoAppDomains[appDomainName] = domainInfo;
 	monoAppDomainPtrToString[appDomain] = appDomainName;
@@ -553,6 +558,93 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 
 }
 
+class MQ2MonoMethods* pMonoQuery = nullptr;
+
+class MQ2MonoMethods : public MQ2Type
+{
+public:
+	enum M2MonoMembers
+	{
+		Query
+	};
+
+	MQ2MonoMethods() :MQ2Type("MQ2Mono")
+	{
+		TypeMember(Query);
+	}
+
+	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
+	{
+		MQTypeMember* pMember = MQ2MonoMethods::FindMember(Member);
+		if (!pMember)
+			return false;
+	
+		char tmp[MAX_STRING] = { 0 };
+		DataTypeTemp[0] = '\0';
+		switch ((M2MonoMembers)pMember->ID)
+		{
+			case Query:
+				if (char* Arg = Index)
+				{
+					if (char* pDest = strchr(Arg, ','))
+					{
+						pDest[0] = '\0';
+						auto domainName = trim(Arg);
+						pDest++;
+						auto expressionValue = trim(pDest);
+						
+						if (monoAppDomains.size() == 0) return true;
+
+						for (auto i : monoAppDomains)
+						{
+							if (i.second.m_appDomainName == domainName)
+							{
+								//Call the main method in this code
+								if (i.second.m_appDomain && i.second.m_OnQuery)
+								{
+									mono_domain_set(i.second.m_appDomain, false);
+									std::string param = std::string(expressionValue);
+									MonoString* monoLine = mono_string_new(i.second.m_appDomain, param.c_str());
+									void* params[1] =
+									{
+										monoLine
+
+									};
+									MonoString *result = (MonoString*)mono_runtime_invoke(i.second.m_OnQuery, i.second.m_classInstance, params, nullptr);
+									char* cppString = mono_string_to_utf8(result);
+									std::string str(cppString);
+									DataTypeTemp[0] = '\0'; //clear it out again in case the invoke also used it.
+									strcat_s(DataTypeTemp, cppString);
+									mono_free(cppString);
+									break;
+								}
+							}
+						}
+					}
+				}
+				Dest.Ptr = &DataTypeTemp[0];
+				Dest.Type = mq::datatypes::pStringType;
+				return true;
+		}
+		return false;
+	}
+
+	bool ToString(MQVarPtr VarPtr, char* Destination) override
+	{
+
+		strcpy_s(Destination, MAX_STRING, "TRUE");
+		return true;
+	}
+};
+
+bool dataMQ2Mono(const char* szName, MQTypeVar& Dest)
+{
+	Dest.DWord = 1;
+	Dest.Type = pMonoQuery;
+	return true;
+}
+
+
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
@@ -562,7 +654,8 @@ PLUGIN_API void InitializePlugin()
 		InitMono();
 	}
 	AddCommand("/mono", MonoCommand, 0, 1, 1);
-	
+	pMonoQuery = new MQ2MonoMethods;
+	AddMQ2Data("MQ2Mono", dataMQ2Mono);
 }
 /**
  * @fn ShutdownPlugin
@@ -589,6 +682,8 @@ PLUGIN_API void ShutdownPlugin()
 	}
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
 	RemoveCommand("/mono");
+	RemoveMQ2Data("MQ2Mono");
+	delete pMonoQuery;
 }
 
 /**
