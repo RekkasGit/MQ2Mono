@@ -36,6 +36,11 @@ or
 ```
 ### Installation
 
+![image](https://github.com/RekkasGit/MQ2Mono/assets/4657161/d5195a0c-0da2-47dd-988c-ae129108dc59)
+
+
+### Building
+
 <ul>
   <li>Place the Directory: Ensure that you place the directory in the Macroquest/plugins folder. Do not place it in Macroquest/src/plugins. </li>
 <li>Add the Plugin: Add the plugin to your 'macroquest' solution. </li>
