@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.26);
+PLUGIN_VERSION(0.27);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -57,7 +57,7 @@ PLUGIN_VERSION(0.26);
  MonoString* mono_GetFocusedWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.26";
+ std::string version = "0.27";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -594,6 +594,8 @@ public:
 		switch ((M2MonoMembers)pMember->ID)
 		{
 			case Query:
+				if (appDomainProcessQueue.size() < 1) return true;
+				if (monoAppDomains.size() == 0) return true;
 				if (char* Arg = Index)
 				{
 					if (char* pDest = strchr(Arg, ','))
@@ -603,7 +605,6 @@ public:
 						pDest++;
 						auto expressionValue = trim(pDest);
 						
-						if (monoAppDomains.size() == 0) return true;
 
 						for (auto i : monoAppDomains)
 						{
