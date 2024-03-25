@@ -6,12 +6,12 @@ For instructions on how to build C# programs using it, review the E3Next Project
 
 https://github.com/RekkasGit/E3Next
 
-### Installation
+# Installation
 
 ![image](https://github.com/RekkasGit/MQ2Mono/assets/4657161/d5195a0c-0da2-47dd-988c-ae129108dc59)
 
 
-Next download the proper framework for your usage. 
+### Next download the proper framework for your usage. 
 
 Live = 64bit
 https://github.com/RekkasGit/MQ2Mono-Framework64
