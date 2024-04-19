@@ -11,8 +11,10 @@
 #include <mono/jit/jit.h>
 #include <map>
 #include <unordered_map>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.27);
+PLUGIN_VERSION(0.28);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -57,7 +59,7 @@ PLUGIN_VERSION(0.27);
  MonoString* mono_GetFocusedWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.27";
+ std::string version = "0.28";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -1398,6 +1400,12 @@ static MonoString* mono_GetMQ2MonoVersion()
 }
 static MonoString* mono_GetFocusedWindowName()
 {
+
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard)
+	{
+		return mono_string_new_wrapper("IMGUI");
+	}
 	if (pWndMgr != nullptr && pWndMgr->FocusWindow != nullptr)
 	{
 		if (CXMLData* pXMLData = pWndMgr->FocusWindow->GetXMLData())
