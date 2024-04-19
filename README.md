@@ -1,6 +1,23 @@
 # MQ2Mono
 
-One Paragraph project description goes here
+Allows C# programs to run in Macroquest via Mono (32bit or 64bit)
+
+For instructions on how to build C# programs using it, review the E3Next Project and its Core.cs and Template project for specific details.
+
+https://github.com/RekkasGit/E3Next
+
+# Installation
+
+![image](https://github.com/RekkasGit/MQ2Mono/assets/4657161/d5195a0c-0da2-47dd-988c-ae129108dc59)
+
+
+### Next download the proper framework for your usage. 
+
+Live = 64bit
+https://github.com/RekkasGit/MQ2Mono-Framework64
+
+EMU (Emulation) = 32bit
+https://github.com/RekkasGit/MQ2Mono-Framework32
 
 ## Getting Started
 
@@ -34,7 +51,10 @@ or
 /echo ${MQ2Mono.Query[e3,InCombat]}
 /echo ${MQ2Mono.Query[e3,E3Bots(Necro01).Query(ShowClass)]}
 ```
-### Installation
+
+
+
+### Building
 
 <ul>
   <li>Place the Directory: Ensure that you place the directory in the Macroquest/plugins folder. Do not place it in Macroquest/src/plugins. </li>
