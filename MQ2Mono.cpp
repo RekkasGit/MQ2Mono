@@ -455,7 +455,6 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 		GetArg(szParam2, szLine, 2);
 	}
 
-
 	if (!initialized)
 	{
 		InitMono();
@@ -464,7 +463,6 @@ void MonoCommand(PSPAWNINFO pChar, PCHAR szLine)
 			return;
 		}
 	}
-
 	//WriteChatf("\arMQ2Mono\au::\at Command issued.");
 	//WriteChatf(szParam1);
 	//WriteChatf(szParam2);
@@ -660,11 +658,6 @@ bool dataMQ2Mono(const char* szName, MQTypeVar& Dest)
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("MQ2Mono::Initializing version %f", MQ2Version);
-	
-	if (!initialized)
-	{
-		InitMono();
-	}
 	AddCommand("/mono", MonoCommand, 0, 1, 1);
 	pMonoQuery = new MQ2MonoMethods;
 	AddMQ2Data("MQ2Mono", dataMQ2Mono);
