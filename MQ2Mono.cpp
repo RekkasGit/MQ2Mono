@@ -14,7 +14,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.28);
+PLUGIN_VERSION(0.29);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -59,7 +59,7 @@ PLUGIN_VERSION(0.28);
  MonoString* mono_GetFocusedWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.28";
+ std::string version = "0.29";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -386,6 +386,7 @@ bool InitAppDomain(std::string appDomainName)
 	}
 	catch(...)
 	{
+		WriteChatf("\arMQ2Mono\au::\at Cannot copy data to %s , is it locked by the OS?", shadowDirectory.c_str());
 		return false;
 	}
 
