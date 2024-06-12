@@ -14,7 +14,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.29);
+PLUGIN_VERSION(0.30);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -59,7 +59,7 @@ PLUGIN_VERSION(0.29);
  MonoString* mono_GetFocusedWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.29";
+ std::string version = "0.30";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -2140,7 +2140,10 @@ static void mono_GetSpawns()
 				int pctMana = 0;
 				if (int maxmana = spawn->GetMaxMana())
 				{
-					pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+					if (maxmana > 0)
+					{
+						pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+					}
 				}
 				memcpy(pBuffer, &pctMana, sizeof(pctMana));
 				pBuffer += sizeof(pctMana);
