@@ -1695,7 +1695,10 @@ static void mono_GetSpawns2()
 				int pctMana = 0;
 				if (int maxmana = spawn->GetMaxMana())
 				{
-					pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+					if (maxmana > 0)
+					{
+						pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+					}
 				}
 				memcpy(pBuffer, &pctMana, sizeof(pctMana));
 				pBuffer += sizeof(pctMana);
