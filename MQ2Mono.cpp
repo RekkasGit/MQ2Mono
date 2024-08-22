@@ -14,7 +14,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.30);
+PLUGIN_VERSION(0.31);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -48,6 +48,10 @@ PLUGIN_VERSION(0.30);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
 
+ //spell data methods
+ int mono_GetSpellDataEffectCount(MonoString* query);
+ MonoString* mono_GetSpellDataEffect(MonoString* query, int line);
+
  //yes there are two of them, yes there is a reason due to compatabilty reasons of e3n
  void mono_GetSpawns();
  void mono_GetSpawns2();
@@ -59,7 +63,7 @@ PLUGIN_VERSION(0.30);
  MonoString* mono_GetFocusedWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.30";
+ std::string version = "0.31";
 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -227,6 +231,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_AddCommand", &mono_AddCommand);
 	mono_add_internal_call("MonoCore.Core::mq_ClearCommands", &mono_ClearCommands);
 	mono_add_internal_call("MonoCore.Core::mq_RemoveCommand", &mono_RemoveCommand);
+	mono_add_internal_call("MonoCore.Core::mq_GetSpellDataEffectCount", &mono_GetSpellDataEffectCount);
+	mono_add_internal_call("MonoCore.Core::mq_GetSpellDataEffect", &mono_GetSpellDataEffect);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns", &mono_GetSpawns);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns2", &mono_GetSpawns2);
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
@@ -1339,7 +1345,8 @@ static void mono_Echo(MonoString* string)
 {
 	char* cppString = mono_string_to_utf8(string);
 	std::string str(cppString);
-	WriteChatf("%s", str.c_str());
+	WriteChatColor(str.c_str());
+	//WriteChatf("%s", str.c_str());
 	mono_free(cppString);
 }
 static void mono_DoCommand(MonoString* text)
@@ -1387,6 +1394,52 @@ bool mono_GetRunNextCommand()
 
 	return bRunNextCommand;
 
+}
+
+static int mono_GetSpellDataEffectCount(MonoString* query)
+{
+	char buffer[MAX_STRING] = { 0 };
+	char* cppString = mono_string_to_utf8(query);
+	std::string str(cppString);
+	strncpy_s(buffer, str.c_str(), sizeof(buffer));
+	mono_free(cppString);
+	eqlib::SPELL* pSpell = nullptr;
+	MonoString* returnValue;
+	IsNumber(buffer) ? pSpell = GetSpellByID(GetIntFromString(buffer, 0)) : pSpell = GetSpellByName(buffer);
+	if (!pSpell)
+	{
+		return -1;
+	}
+
+	return GetSpellNumEffects(pSpell);
+
+}
+static MonoString* mono_GetSpellDataEffect(MonoString* query, int line)
+{
+	char buffer[MAX_STRING] = { 0 };
+	char* cppString = mono_string_to_utf8(query);
+	std::string str(cppString);
+	strncpy_s(buffer, str.c_str(), sizeof(buffer));
+	mono_free(cppString);
+
+	eqlib::SPELL* pSpell = nullptr;
+	MonoString* returnValue;
+	IsNumber(buffer) ? pSpell = GetSpellByID(GetIntFromString(buffer, 0)) : pSpell = GetSpellByName(buffer);
+	if (!pSpell)
+	{
+		returnValue = mono_string_new_wrapper("NULL");
+		return returnValue;
+	}
+	char szBuff[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	int numberOfEffects = GetSpellNumEffects(pSpell);
+	
+	if (numberOfEffects > line && line>-1)
+	{
+		strcat_s(szBuff, ParseSpellEffect(pSpell, line, szTemp, sizeof(szTemp)));
+		return  mono_string_new_wrapper(szBuff);
+	}
+	return  mono_string_new_wrapper("NULL");
 }
 static MonoString* mono_GetMQ2MonoVersion()
 {	
