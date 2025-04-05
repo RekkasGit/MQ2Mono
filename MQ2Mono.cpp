@@ -14,7 +14,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.31);
+PLUGIN_VERSION(0.32);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -61,10 +61,12 @@ PLUGIN_VERSION(0.31);
 
  //used to get the currently focused window element
  MonoString* mono_GetFocusedWindowName();
+ //used to get the currently focused window element
+ MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.31";
-
+ std::string version = "0.32";
+ 
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
  /// we need to keep track of.
@@ -188,7 +190,7 @@ void InitMono()
 {
 
 	if (initialized) return;
-
+	
 	//setup mono macro directory + runtime directory
 	rootDir = std::filesystem::path(gPathMQRoot).u8string();
 	monoDir = rootDir + "\\Mono";
@@ -237,6 +239,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns2", &mono_GetSpawns2);
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
+	mono_add_internal_call("MonoCore.Core::mono_GetHoverWindowName", &mono_GetHoverWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
 	
 	//I'm GUI stuff
@@ -677,7 +680,6 @@ PLUGIN_API void InitializePlugin()
  */
 PLUGIN_API void ShutdownPlugin()
 {
-	
 	// DebugSpewAlways("MQ2Mono::OnUnloadPlugin(%s)", Name);
 	/// <summary>
 	/// for future me
@@ -1455,7 +1457,29 @@ static MonoString* mono_GetFocusedWindowName()
 	}
 	if (pWndMgr != nullptr && pWndMgr->FocusWindow != nullptr)
 	{
+
 		if (CXMLData* pXMLData = pWndMgr->FocusWindow->GetXMLData())
+		{			
+			MonoString* returnValue;
+			
+			returnValue = mono_string_new_wrapper(pXMLData->Name.c_str());
+			return returnValue;
+		}
+	}
+	return mono_string_new_wrapper("NULL");
+}
+static MonoString* mono_GetHoverWindowName()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard)
+	{
+		return mono_string_new_wrapper("IMGUI");
+	}
+	if (pWndMgr != nullptr && pWndMgr->LastMouseOver != nullptr)
+	{
+		if(pWndMgr->LastMouseOver==0) return mono_string_new_wrapper("MAIN");
+		
+		if (CXMLData* pXMLData = pWndMgr->LastMouseOver->GetXMLData())
 		{
 			MonoString* returnValue;
 			returnValue = mono_string_new_wrapper(pXMLData->Name.c_str());
