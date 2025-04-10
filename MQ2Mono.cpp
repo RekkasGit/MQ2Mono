@@ -14,7 +14,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.32);
+PLUGIN_VERSION(0.33);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -65,7 +65,7 @@ PLUGIN_VERSION(0.32);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.32";
+ std::string version = "0.33";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -390,7 +390,7 @@ bool InitAppDomain(std::string appDomainName)
 	//copy it to a new directory
 	try
 	{
-		std::filesystem::copy(assemblypath, shadowDirectory, std::filesystem::copy_options::overwrite_existing);
+		std::filesystem::copy(assemblypath, shadowDirectory, std::filesystem::copy_options::update_existing);
 
 	}
 	catch(...)
