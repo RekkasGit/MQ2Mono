@@ -42,6 +42,36 @@ PLUGIN_VERSION(0.33);
  void mono_ImGUI_End();
  boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
  void mono_ImGUI_Begin_OpenFlagSet(MonoString* name,bool open);
+ // Extended ImGui wrappers
+ void mono_ImGUI_Text(MonoString* text);
+ void mono_ImGUI_Separator();
+ void mono_ImGUI_SameLine();
+ bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue);
+ // Tab bar wrappers
+ bool mono_ImGUI_BeginTabBar(MonoString* name);
+ void mono_ImGUI_EndTabBar();
+ bool mono_ImGUI_BeginTabItem(MonoString* label);
+ void mono_ImGUI_EndTabItem();
+  // Child/selection/layout helpers
+  bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border);
+  void mono_ImGUI_EndChild();
+  bool mono_ImGUI_Selectable(MonoString* label, bool selected);
+  float mono_ImGUI_GetContentRegionAvailX();
+  float mono_ImGUI_GetContentRegionAvailY();
+  // Text input helpers
+  bool mono_ImGUI_InputText(MonoString* id, MonoString* initial);
+  MonoString* mono_ImGUI_InputText_Get(MonoString* id);
+  void mono_ImGUI_SetNextItemWidth(float width);
+  // Combo helpers
+  bool mono_ImGUI_BeginCombo(MonoString* label, MonoString* preview, int flags);
+  void mono_ImGUI_EndCombo();
+  // Alignment helper
+  bool mono_ImGUI_RightAlignButton(MonoString* name);
+  // Context menu / popup helpers
+  bool mono_ImGUI_BeginPopupContextItem(MonoString* id, int flags);
+  bool mono_ImGUI_BeginPopupContextWindow(MonoString* id, int flags);
+  void mono_ImGUI_EndPopup();
+  bool mono_ImGUI_MenuItem(MonoString* label);
   //end temp methods
  
  bool InitAppDomain(std::string appDomainName);
@@ -71,8 +101,8 @@ PLUGIN_VERSION(0.33);
  /// Main data structure that has information on each individual app domain that we create and informatoin
  /// we need to keep track of.
  /// </summary>
- struct monoAppDomainInfo
- {
+struct monoAppDomainInfo
+{
 	 std::string m_appDomainName;
 	 //app domain we have created for e3
 	 MonoDomain* m_appDomain=nullptr;
@@ -94,6 +124,7 @@ PLUGIN_VERSION(0.33);
 
 	 std::map<std::string, bool> m_IMGUI_OpenWindows;
 	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
+	 std::map<std::string, std::string> m_IMGUI_InputTextValues;
 	 std::map<std::string, bool> m_IMGUI_RadioButtonValues;
 	 std::string m_CurrentWindow;
 	 bool m_IMGUI_Open = true;
@@ -248,6 +279,33 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::imgui_End", &mono_ImGUI_End);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagSet", &mono_ImGUI_Begin_OpenFlagSet);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
+	mono_add_internal_call("MonoCore.Core::imgui_Text", &mono_ImGUI_Text);
+	mono_add_internal_call("MonoCore.Core::imgui_Separator", &mono_ImGUI_Separator);
+	mono_add_internal_call("MonoCore.Core::imgui_SameLine", &mono_ImGUI_SameLine);
+	mono_add_internal_call("MonoCore.Core::imgui_Checkbox", &mono_ImGUI_Checkbox);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginTabBar", &mono_ImGUI_BeginTabBar);
+	mono_add_internal_call("MonoCore.Core::imgui_EndTabBar", &mono_ImGUI_EndTabBar);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginTabItem", &mono_ImGUI_BeginTabItem);
+	mono_add_internal_call("MonoCore.Core::imgui_EndTabItem", &mono_ImGUI_EndTabItem);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginChild", &mono_ImGUI_BeginChild);
+	mono_add_internal_call("MonoCore.Core::imgui_EndChild", &mono_ImGUI_EndChild);
+	mono_add_internal_call("MonoCore.Core::imgui_Selectable", &mono_ImGUI_Selectable);
+	mono_add_internal_call("MonoCore.Core::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
+    mono_add_internal_call("MonoCore.Core::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
+    mono_add_internal_call("MonoCore.Core::imgui_InputText", &mono_ImGUI_InputText);
+    mono_add_internal_call("MonoCore.Core::imgui_InputText_Get", &mono_ImGUI_InputText_Get);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextItemWidth", &mono_ImGUI_SetNextItemWidth);
+    // Combo wrappers
+    mono_add_internal_call("MonoCore.Core::imgui_BeginCombo", &mono_ImGUI_BeginCombo);
+    mono_add_internal_call("MonoCore.Core::imgui_EndCombo", &mono_ImGUI_EndCombo);
+    // Right align helper
+    mono_add_internal_call("MonoCore.Core::imgui_RightAlignButton", &mono_ImGUI_RightAlignButton);
+
+    // Context menus / popups
+    mono_add_internal_call("MonoCore.Core::imgui_BeginPopupContextItem", &mono_ImGUI_BeginPopupContextItem);
+    mono_add_internal_call("MonoCore.Core::imgui_BeginPopupContextWindow", &mono_ImGUI_BeginPopupContextWindow);
+    mono_add_internal_call("MonoCore.Core::imgui_EndPopup", &mono_ImGUI_EndPopup);
+    mono_add_internal_call("MonoCore.Core::imgui_MenuItem", &mono_ImGUI_MenuItem);
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
@@ -1109,8 +1167,7 @@ PLUGIN_API void OnZoned()
  */
 PLUGIN_API void OnUpdateImGui()
 {
-	//not currently using this
-	return;
+	// Allow managed domains to render their ImGui each frame
 	if (!initialized) return;
 	if (monoAppDomains.size() == 0) return;
 
@@ -1325,6 +1382,240 @@ static bool mono_ImGUI_Button(MonoString* name)
 static void mono_ImGUI_End()
 {
 	ImGui::End();
+}
+
+static void mono_ImGUI_Text(MonoString* text)
+{
+	char* cppString = mono_string_to_utf8(text);
+	std::string str(cppString);
+	mono_free(cppString);
+	ImGui::TextUnformatted(str.c_str());
+}
+
+static void mono_ImGUI_Separator()
+{
+	ImGui::Separator();
+}
+
+static void mono_ImGUI_SameLine()
+{
+	ImGui::SameLine();
+}
+
+static bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		bool value = defaultValue;
+		auto it = domainInfo.m_IMGUI_CheckboxValues.find(str);
+		if (it != domainInfo.m_IMGUI_CheckboxValues.end())
+		{
+			value = it->second;
+		}
+		bool changed = ImGui::Checkbox(str.c_str(), &value);
+		domainInfo.m_IMGUI_CheckboxValues[str] = value;
+		return value;
+	}
+	return defaultValue;
+}
+
+static bool mono_ImGUI_BeginTabBar(MonoString* name)
+{
+    char* cppString = mono_string_to_utf8(name);
+    std::string str(cppString);
+    mono_free(cppString);
+    return ImGui::BeginTabBar(str.c_str());
+}
+
+static void mono_ImGUI_EndTabBar()
+{
+    ImGui::EndTabBar();
+}
+
+static bool mono_ImGUI_BeginTabItem(MonoString* label)
+{
+    char* cppString = mono_string_to_utf8(label);
+    std::string str(cppString);
+    mono_free(cppString);
+    return ImGui::BeginTabItem(str.c_str());
+}
+
+static void mono_ImGUI_EndTabItem()
+{
+    ImGui::EndTabItem();
+}
+
+static bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border)
+{
+    char* cppString = mono_string_to_utf8(id);
+    std::string str(cppString);
+    mono_free(cppString);
+    ImVec2 size(width, height);
+    return ImGui::BeginChild(str.c_str(), size, border);
+}
+
+static void mono_ImGUI_EndChild()
+{
+    ImGui::EndChild();
+}
+
+static bool mono_ImGUI_Selectable(MonoString* label, bool selected)
+{
+    char* cppString = mono_string_to_utf8(label);
+    std::string str(cppString);
+    mono_free(cppString);
+    return ImGui::Selectable(str.c_str(), selected);
+}
+
+static float mono_ImGUI_GetContentRegionAvailX()
+{
+    return ImGui::GetContentRegionAvail().x;
+}
+
+static float mono_ImGUI_GetContentRegionAvailY()
+{
+    return ImGui::GetContentRegionAvail().y;
+}
+
+static bool mono_ImGUI_BeginCombo(MonoString* label, MonoString* preview, int flags)
+{
+    char* lC = mono_string_to_utf8(label);
+    std::string lStr(lC);
+    mono_free(lC);
+    char* pC = mono_string_to_utf8(preview);
+    std::string pStr(pC ? pC : "");
+    if (pC) mono_free(pC);
+    return ImGui::BeginCombo(lStr.c_str(), pStr.c_str(), (ImGuiComboFlags)flags);
+}
+
+static void mono_ImGUI_EndCombo()
+{
+    ImGui::EndCombo();
+}
+
+static bool mono_ImGUI_RightAlignButton(MonoString* name)
+{
+    if (!name) return false;
+    char* cpp = mono_string_to_utf8(name);
+    std::string label(cpp ? cpp : "");
+    if (cpp) mono_free(cpp);
+
+    ImVec2 textSize = ImGui::CalcTextSize(label.c_str());
+    float buttonWidth = textSize.x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    float avail = ImGui::GetContentRegionAvail().x;
+    if (avail > buttonWidth)
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - buttonWidth));
+    }
+    return ImGui::Button(label.c_str());
+}
+
+static bool mono_ImGUI_InputText(MonoString* id, MonoString* initial)
+{
+    char* idC = mono_string_to_utf8(id);
+    std::string idStr(idC);
+    mono_free(idC);
+
+    char* initC = mono_string_to_utf8(initial);
+    std::string initStr(initC ? initC : "");
+    if (initC) mono_free(initC);
+
+    MonoDomain* currentDomain = mono_domain_get();
+    if (!currentDomain) return false;
+
+    std::string key = monoAppDomainPtrToString[currentDomain];
+    auto& domainInfo = monoAppDomains[key];
+    auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+    if (it == domainInfo.m_IMGUI_InputTextValues.end())
+    {
+        domainInfo.m_IMGUI_InputTextValues[idStr] = initStr;
+        it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+    }
+
+    // limit buffer to 512 chars
+    char buf[512];
+    memset(buf, 0, sizeof(buf));
+    strncpy(buf, it->second.c_str(), sizeof(buf) - 1);
+    bool changed = ImGui::InputText(idStr.c_str(), buf, sizeof(buf));
+    if (changed)
+    {
+        it->second = std::string(buf);
+        return true;
+    }
+    return false;
+}
+
+static MonoString* mono_ImGUI_InputText_Get(MonoString* id)
+{
+    char* idC = mono_string_to_utf8(id);
+    std::string idStr(idC);
+    mono_free(idC);
+
+    MonoDomain* currentDomain = mono_domain_get();
+    if (!currentDomain) return mono_string_new(mono_get_root_domain(), "");
+    std::string key = monoAppDomainPtrToString[currentDomain];
+    auto& domainInfo = monoAppDomains[key];
+    auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+    if (it == domainInfo.m_IMGUI_InputTextValues.end())
+    {
+        return mono_string_new(currentDomain, "");
+    }
+    return mono_string_new(currentDomain, it->second.c_str());
+}
+
+static void mono_ImGUI_SetNextItemWidth(float width)
+{
+    ImGui::SetNextItemWidth(width);
+}
+
+// ----- Context menu / popup helpers -----
+static bool mono_ImGUI_BeginPopupContextItem(MonoString* id, int flags)
+{
+    const char* c_id = nullptr;
+    std::string temp;
+    if (id)
+    {
+        char* s = mono_string_to_utf8(id);
+        temp = (s ? s : "");
+        if (s) mono_free(s);
+        c_id = temp.c_str();
+    }
+    return ImGui::BeginPopupContextItem(c_id, (ImGuiPopupFlags)flags);
+}
+
+static bool mono_ImGUI_BeginPopupContextWindow(MonoString* id, int flags)
+{
+    const char* c_id = nullptr;
+    std::string temp;
+    if (id)
+    {
+        char* s = mono_string_to_utf8(id);
+        temp = (s ? s : "");
+        if (s) mono_free(s);
+        c_id = temp.c_str();
+    }
+    return ImGui::BeginPopupContextWindow(c_id, (ImGuiPopupFlags)flags);
+}
+
+static void mono_ImGUI_EndPopup()
+{
+    ImGui::EndPopup();
+}
+
+static bool mono_ImGUI_MenuItem(MonoString* label)
+{
+    if (!label) return false;
+    char* l = mono_string_to_utf8(label);
+    std::string s(l ? l : "");
+    if (l) mono_free(l);
+    return ImGui::MenuItem(s.c_str());
 }
 #pragma endregion test code for ImGUI, went into another direction
 
