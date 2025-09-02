@@ -14,6 +14,17 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 PreSetup("MQ2Mono");
+
+// Forward declarations for new ImGui wrappers (tables, colors)
+bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width);
+void mono_ImGUI_EndTable();
+void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width);
+void mono_ImGUI_TableHeadersRow();
+void mono_ImGUI_TableNextRow();
+bool mono_ImGUI_TableNextColumn();
+void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
+void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
+void mono_ImGUI_PopStyleColor(int count);
 PLUGIN_VERSION(0.33);
 
 /**
@@ -306,6 +317,19 @@ void InitMono()
     mono_add_internal_call("MonoCore.Core::imgui_BeginPopupContextWindow", &mono_ImGUI_BeginPopupContextWindow);
     mono_add_internal_call("MonoCore.Core::imgui_EndPopup", &mono_ImGUI_EndPopup);
     mono_add_internal_call("MonoCore.Core::imgui_MenuItem", &mono_ImGUI_MenuItem);
+
+    // Tables
+    mono_add_internal_call("MonoCore.Core::imgui_BeginTable", &mono_ImGUI_BeginTable);
+    mono_add_internal_call("MonoCore.Core::imgui_EndTable", &mono_ImGUI_EndTable);
+    mono_add_internal_call("MonoCore.Core::imgui_TableSetupColumn", &mono_ImGUI_TableSetupColumn);
+    mono_add_internal_call("MonoCore.Core::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);
+    mono_add_internal_call("MonoCore.Core::imgui_TableNextRow", &mono_ImGUI_TableNextRow);
+    mono_add_internal_call("MonoCore.Core::imgui_TableNextColumn", &mono_ImGUI_TableNextColumn);
+
+    // Colors / styled text
+    mono_add_internal_call("MonoCore.Core::imgui_TextColored", &mono_ImGUI_TextColored);
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleColor", &mono_ImGUI_PushStyleColor);
+    mono_add_internal_call("MonoCore.Core::imgui_PopStyleColor", &mono_ImGUI_PopStyleColor);
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
@@ -1450,6 +1474,56 @@ static bool mono_ImGUI_BeginTabItem(MonoString* label)
 static void mono_ImGUI_EndTabItem()
 {
     ImGui::EndTabItem();
+}
+
+// ===================== ImGui wrappers: Tables =====================
+bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width)
+{
+    if (!id) return false;
+    char* sid = mono_string_to_utf8(id);
+    bool result = ImGui::BeginTable(sid, columns, (ImGuiTableFlags)flags, ImVec2(outer_width, 0.0f));
+    mono_free(sid);
+    return result;
+}
+void mono_ImGUI_EndTable()
+{
+    ImGui::EndTable();
+}
+void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width)
+{
+    if (!label) return;
+    char* slabel = mono_string_to_utf8(label);
+    ImGui::TableSetupColumn(slabel, (ImGuiTableColumnFlags)flags, init_width);
+    mono_free(slabel);
+}
+void mono_ImGUI_TableHeadersRow()
+{
+    ImGui::TableHeadersRow();
+}
+void mono_ImGUI_TableNextRow()
+{
+    ImGui::TableNextRow();
+}
+bool mono_ImGUI_TableNextColumn()
+{
+    return ImGui::TableNextColumn();
+}
+
+// ===================== ImGui wrappers: Colors / TextColored =====================
+void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text)
+{
+    if (!text) return;
+    char* stext = mono_string_to_utf8(text);
+    ImGui::TextColored(ImVec4(r, g, b, a), "%s", stext);
+    mono_free(stext);
+}
+void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a)
+{
+    ImGui::PushStyleColor((ImGuiCol)which, ImVec4(r, g, b, a));
+}
+void mono_ImGUI_PopStyleColor(int count)
+{
+    ImGui::PopStyleColor(count);
 }
 
 static bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border)
