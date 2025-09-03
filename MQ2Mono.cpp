@@ -22,6 +22,7 @@ void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width)
 void mono_ImGUI_TableHeadersRow();
 void mono_ImGUI_TableNextRow();
 bool mono_ImGUI_TableNextColumn();
+void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing);
 void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
 void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
 void mono_ImGUI_PopStyleColor(int count);
@@ -284,7 +285,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mono_GetHoverWindowName", &mono_GetHoverWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
 	
-	//I'm GUI stuff
+	//ImGui stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.Core::imgui_Button", &mono_ImGUI_Button);
 	mono_add_internal_call("MonoCore.Core::imgui_End", &mono_ImGUI_End);
@@ -293,6 +294,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::imgui_Text", &mono_ImGUI_Text);
 	mono_add_internal_call("MonoCore.Core::imgui_Separator", &mono_ImGUI_Separator);
 	mono_add_internal_call("MonoCore.Core::imgui_SameLine", &mono_ImGUI_SameLine);
+	mono_add_internal_call("MonoCore.Core::imgui_SameLineEx", &mono_ImGUI_SameLineEx);
 	mono_add_internal_call("MonoCore.Core::imgui_Checkbox", &mono_ImGUI_Checkbox);
 	mono_add_internal_call("MonoCore.Core::imgui_BeginTabBar", &mono_ImGUI_BeginTabBar);
 	mono_add_internal_call("MonoCore.Core::imgui_EndTabBar", &mono_ImGUI_EndTabBar);
@@ -1424,6 +1426,11 @@ static void mono_ImGUI_Separator()
 static void mono_ImGUI_SameLine()
 {
 	ImGui::SameLine();
+}
+
+static void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing)
+{
+	ImGui::SameLine(offset_from_start_x, spacing);
 }
 
 static bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue)
