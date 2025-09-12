@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <mq/imgui/Widgets.h>
 PreSetup("MQ2Mono");
 
 // Forward declarations for new ImGui wrappers (tables, colors)
@@ -26,7 +27,41 @@ void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing);
 void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
 void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
 void mono_ImGUI_PopStyleColor(int count);
-PLUGIN_VERSION(0.33);
+// New: text wrapping and window size constraints
+void mono_ImGUI_TextWrapped(MonoString* text);
+// Safe text without printf formatting
+void mono_ImGUI_TextUnformatted(MonoString* text);
+void mono_ImGUI_PushTextWrapPos(float wrap_local_pos_x);
+void mono_ImGUI_PopTextWrapPos();
+void mono_ImGUI_SetNextWindowSizeConstraints(float min_w, float min_h, float max_w, float max_h);
+// New ImGui wrappers for floating UI
+void mono_ImGUI_SetNextWindowBgAlpha(float alpha);
+void mono_ImGUI_SetNextWindowSize(float width, float height);
+bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height);
+bool mono_ImGUI_IsWindowHovered();
+bool mono_ImGUI_IsMouseClicked(int button);
+bool mono_ImGUI_SmallButton(MonoString* name);
+// New: Sliders
+bool mono_ImGUI_SliderInt(MonoString* id, int* value, int min, int max);
+bool mono_ImGUI_SliderDouble(MonoString* id, double* value, double min, double max, MonoString* fmt);
+// TreeNode helpers
+bool mono_ImGUI_TreeNode(MonoString* label);
+bool mono_ImGUI_TreeNodeEx(MonoString* label, int flags);
+void mono_ImGUI_TreePop();
+bool mono_ImGUI_CollapsingHeader(MonoString* label, int flags);
+// Tooltips and hover detection
+bool mono_ImGUI_IsItemHovered();
+void mono_ImGUI_BeginTooltip();
+void mono_ImGUI_EndTooltip();
+// Image display
+void mono_ImGUI_Image(void* textureId, float width, float height);
+// Draw spell icon helpers
+void mono_ImGUI_DrawSpellIconByIconIndex(int iconIndex, float size);
+void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size);
+// Texture creation from raw data
+void* mono_CreateTextureFromData(const uint8_t* data, int width, int height, int channels);
+void mono_DestroyTexture(void* textureId);
+PLUGIN_VERSION(0.34);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -51,6 +86,8 @@ PLUGIN_VERSION(0.33);
  //IMGUI calls, not in use really was a test
  bool mono_ImGUI_Begin(MonoString* name, int flags);
  bool mono_ImGUI_Button(MonoString* name);
+ bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height);
+ bool mono_ImGUI_SmallButton(MonoString* name);
  void mono_ImGUI_End();
  boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
  void mono_ImGUI_Begin_OpenFlagSet(MonoString* name,bool open);
@@ -74,6 +111,11 @@ PLUGIN_VERSION(0.33);
   bool mono_ImGUI_InputText(MonoString* id, MonoString* initial);
   MonoString* mono_ImGUI_InputText_Get(MonoString* id);
   void mono_ImGUI_SetNextItemWidth(float width);
+  // Window control helpers
+  void mono_ImGUI_SetNextWindowBgAlpha(float alpha);
+  void mono_ImGUI_SetNextWindowSize(float width, float height);
+  bool mono_ImGUI_IsWindowHovered();
+  bool mono_ImGUI_IsMouseClicked(int button);
   // Combo helpers
   bool mono_ImGUI_BeginCombo(MonoString* label, MonoString* preview, int flags);
   void mono_ImGUI_EndCombo();
@@ -107,7 +149,7 @@ PLUGIN_VERSION(0.33);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.33";
+ std::string version = "0.34";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -288,6 +330,8 @@ void InitMono()
 	//ImGui stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.Core::imgui_Button", &mono_ImGUI_Button);
+	mono_add_internal_call("MonoCore.Core::imgui_ButtonEx", &mono_ImGUI_ButtonEx);
+	mono_add_internal_call("MonoCore.Core::imgui_SmallButton", &mono_ImGUI_SmallButton);
 	mono_add_internal_call("MonoCore.Core::imgui_End", &mono_ImGUI_End);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagSet", &mono_ImGUI_Begin_OpenFlagSet);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
@@ -332,6 +376,45 @@ void InitMono()
     mono_add_internal_call("MonoCore.Core::imgui_TextColored", &mono_ImGUI_TextColored);
     mono_add_internal_call("MonoCore.Core::imgui_PushStyleColor", &mono_ImGUI_PushStyleColor);
     mono_add_internal_call("MonoCore.Core::imgui_PopStyleColor", &mono_ImGUI_PopStyleColor);
+
+    // Text wrapping and window sizing
+    mono_add_internal_call("MonoCore.Core::imgui_TextWrapped", &mono_ImGUI_TextWrapped);
+    // Expose unformatted text render to avoid printf-style format crashes
+    mono_add_internal_call("MonoCore.Core::imgui_TextUnformatted", &mono_ImGUI_TextUnformatted);
+    mono_add_internal_call("MonoCore.Core::imgui_PushTextWrapPos", &mono_ImGUI_PushTextWrapPos);
+    mono_add_internal_call("MonoCore.Core::imgui_PopTextWrapPos", &mono_ImGUI_PopTextWrapPos);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowSizeConstraints", &mono_ImGUI_SetNextWindowSizeConstraints);
+    
+    // New window control functions
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowBgAlpha", &mono_ImGUI_SetNextWindowBgAlpha);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowSize", &mono_ImGUI_SetNextWindowSize);
+    mono_add_internal_call("MonoCore.Core::imgui_IsWindowHovered", &mono_ImGUI_IsWindowHovered);
+    mono_add_internal_call("MonoCore.Core::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
+    // Sliders
+    mono_add_internal_call("MonoCore.Core::imgui_SliderInt", &mono_ImGUI_SliderInt);
+    mono_add_internal_call("MonoCore.Core::imgui_SliderDouble", &mono_ImGUI_SliderDouble);
+    
+    // Tree nodes
+    mono_add_internal_call("MonoCore.Core::imgui_TreeNode", &mono_ImGUI_TreeNode);
+    mono_add_internal_call("MonoCore.Core::imgui_TreeNodeEx", &mono_ImGUI_TreeNodeEx);
+    mono_add_internal_call("MonoCore.Core::imgui_TreePop", &mono_ImGUI_TreePop);
+    mono_add_internal_call("MonoCore.Core::imgui_CollapsingHeader", &mono_ImGUI_CollapsingHeader);
+
+    // Tooltips and hover detection
+    mono_add_internal_call("MonoCore.Core::imgui_IsItemHovered", &mono_ImGUI_IsItemHovered);
+    mono_add_internal_call("MonoCore.Core::imgui_BeginTooltip", &mono_ImGUI_BeginTooltip);
+    mono_add_internal_call("MonoCore.Core::imgui_EndTooltip", &mono_ImGUI_EndTooltip);
+
+    // Image display
+    mono_add_internal_call("MonoCore.Core::imgui_Image", &mono_ImGUI_Image);
+
+    // Spell icon drawing
+    mono_add_internal_call("MonoCore.Core::imgui_DrawSpellIconByIconIndex", &mono_ImGUI_DrawSpellIconByIconIndex);
+    mono_add_internal_call("MonoCore.Core::imgui_DrawSpellIconBySpellID", &mono_ImGUI_DrawSpellIconBySpellID);
+
+    // Texture creation from raw data
+    mono_add_internal_call("MonoCore.Core::mq_CreateTextureFromData", &mono_CreateTextureFromData);
+    mono_add_internal_call("MonoCore.Core::mq_DestroyTexture", &mono_DestroyTexture);
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
@@ -1405,6 +1488,22 @@ static bool mono_ImGUI_Button(MonoString* name)
 	return ImGui::Button(str.c_str());
 }
 
+static bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+	return ImGui::Button(str.c_str(), ImVec2(width, height));
+}
+
+static bool mono_ImGUI_SmallButton(MonoString* name)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+	return ImGui::SmallButton(str.c_str());
+}
+
 static void mono_ImGUI_End()
 {
 	ImGui::End();
@@ -1412,10 +1511,18 @@ static void mono_ImGUI_End()
 
 static void mono_ImGUI_Text(MonoString* text)
 {
-	char* cppString = mono_string_to_utf8(text);
-	std::string str(cppString);
-	mono_free(cppString);
-	ImGui::TextUnformatted(str.c_str());
+    char* cppString = mono_string_to_utf8(text);
+    std::string str(cppString);
+    mono_free(cppString);
+    ImGui::TextUnformatted(str.c_str());
+}
+
+static void mono_ImGUI_TextUnformatted(MonoString* text)
+{
+    char* cppString = mono_string_to_utf8(text);
+    std::string str(cppString);
+    mono_free(cppString);
+    ImGui::TextUnformatted(str.c_str());
 }
 
 static void mono_ImGUI_Separator()
@@ -1531,6 +1638,47 @@ void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a)
 void mono_ImGUI_PopStyleColor(int count)
 {
     ImGui::PopStyleColor(count);
+}
+
+// ===================== ImGui wrappers: Text wrapping and constraints =====================
+void mono_ImGUI_TextWrapped(MonoString* text)
+{
+    if (!text) return;
+    char* stext = mono_string_to_utf8(text);
+    ImGui::TextWrapped("%s", stext);
+    mono_free(stext);
+}
+void mono_ImGUI_PushTextWrapPos(float wrap_local_pos_x)
+{
+    ImGui::PushTextWrapPos(wrap_local_pos_x);
+}
+void mono_ImGUI_PopTextWrapPos()
+{
+    ImGui::PopTextWrapPos();
+}
+void mono_ImGUI_SetNextWindowSizeConstraints(float min_w, float min_h, float max_w, float max_h)
+{
+    ImGui::SetNextWindowSizeConstraints(ImVec2(min_w, min_h), ImVec2(max_w, max_h));
+}
+
+static void mono_ImGUI_SetNextWindowBgAlpha(float alpha)
+{
+    ImGui::SetNextWindowBgAlpha(alpha);
+}
+
+static void mono_ImGUI_SetNextWindowSize(float width, float height)
+{
+    ImGui::SetNextWindowSize(ImVec2(width, height));
+}
+
+static bool mono_ImGUI_IsWindowHovered()
+{
+    return ImGui::IsWindowHovered();
+}
+
+static bool mono_ImGUI_IsMouseClicked(int button)
+{
+    return ImGui::IsMouseClicked(button);
 }
 
 static bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border)
@@ -1656,6 +1804,40 @@ static void mono_ImGUI_SetNextItemWidth(float width)
     ImGui::SetNextItemWidth(width);
 }
 
+// ----- Slider helpers -----
+static bool mono_ImGUI_SliderInt(MonoString* id, int* value, int min, int max)
+{
+    if (!id || !value) return false;
+    char* idC = mono_string_to_utf8(id);
+    std::string idStr(idC ? idC : "");
+    if (idC) mono_free(idC);
+
+    int v = *value;
+    bool changed = ImGui::SliderInt(idStr.c_str(), &v, min, max);
+    if (changed) { *value = v; }
+    return changed;
+}
+
+static bool mono_ImGUI_SliderDouble(MonoString* id, double* value, double min, double max, MonoString* fmt)
+{
+    if (!id || !value) return false;
+    char* idC = mono_string_to_utf8(id);
+    std::string idStr(idC ? idC : "");
+    if (idC) mono_free(idC);
+
+    std::string fmtStr = "%.3f";
+    if (fmt)
+    {
+        char* f = mono_string_to_utf8(fmt);
+        if (f) { fmtStr = f; mono_free(f); }
+    }
+
+    double v = *value;
+    bool changed = ImGui::SliderScalar(idStr.c_str(), ImGuiDataType_Double, &v, &min, &max, fmtStr.c_str());
+    if (changed) { *value = v; }
+    return changed;
+}
+
 // ----- Context menu / popup helpers -----
 static bool mono_ImGUI_BeginPopupContextItem(MonoString* id, int flags)
 {
@@ -1698,6 +1880,116 @@ static bool mono_ImGUI_MenuItem(MonoString* label)
     if (l) mono_free(l);
     return ImGui::MenuItem(s.c_str());
 }
+
+// ----- TreeNode helpers -----
+static bool mono_ImGUI_TreeNode(MonoString* label)
+{
+    if (!label) return false;
+    char* l = mono_string_to_utf8(label);
+    std::string s(l ? l : "");
+    if (l) mono_free(l);
+    return ImGui::TreeNode(s.c_str());
+}
+
+static bool mono_ImGUI_TreeNodeEx(MonoString* label, int flags)
+{
+    if (!label) return false;
+    char* l = mono_string_to_utf8(label);
+    std::string s(l ? l : "");
+    if (l) mono_free(l);
+    return ImGui::TreeNodeEx(s.c_str(), (ImGuiTreeNodeFlags)flags);
+}
+
+static void mono_ImGUI_TreePop()
+{
+    ImGui::TreePop();
+}
+
+static bool mono_ImGUI_CollapsingHeader(MonoString* label, int flags)
+{
+    if (!label) return false;
+    char* l = mono_string_to_utf8(label);
+    std::string s(l ? l : "");
+    if (l) mono_free(l);
+    return ImGui::CollapsingHeader(s.c_str(), (ImGuiTreeNodeFlags)flags);
+}
+
+// ----- Tooltips and hover detection -----
+static bool mono_ImGUI_IsItemHovered()
+{
+    return ImGui::IsItemHovered();
+}
+
+static void mono_ImGUI_BeginTooltip()
+{
+    ImGui::BeginTooltip();
+}
+
+static void mono_ImGUI_EndTooltip()
+{
+    ImGui::EndTooltip();
+}
+
+// ----- Image display -----
+static void mono_ImGUI_Image(void* textureId, float width, float height)
+{
+    ImGui::Image(textureId, ImVec2(width, height));
+}
+
+// ----- Spell icon drawing -----
+static void mono_ImGUI_DrawSpellIconByIconIndex(int iconIndex, float size)
+{
+    static CTextureAnimation* s_pTASpellIcons = nullptr;
+
+    if (!pSidlMgr)
+        return;
+
+    if (!s_pTASpellIcons)
+    {
+        if (CTextureAnimation* temp = pSidlMgr->FindAnimation("A_SpellGems"))
+        {
+            s_pTASpellIcons = new CTextureAnimation(*temp);
+        }
+    }
+
+    if (!s_pTASpellIcons)
+        return;
+
+    if (iconIndex < 0)
+        return;
+
+    s_pTASpellIcons->SetCurCell(iconIndex);
+    mq::imgui::DrawTextureAnimation(s_pTASpellIcons, eqlib::CXSize((int)size, (int)size));
+}
+
+static void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size)
+{
+    if (spellId <= 0)
+        return;
+
+    eqlib::EQ_Spell* pSpell = GetSpellByID(spellId);
+    if (!pSpell)
+        return;
+
+    int iconIndex = pSpell->SpellIcon;
+    mono_ImGUI_DrawSpellIconByIconIndex(iconIndex, size);
+}
+
+// ----- Texture creation from raw data -----
+static void* mono_CreateTextureFromData(const uint8_t* data, int width, int height, int channels)
+{
+    // For now, return nullptr as a placeholder
+    // A full implementation would need to create a DirectX/OpenGL texture from the raw data
+    // and return an ImTextureID that ImGui can use
+    return nullptr;
+}
+
+static void mono_DestroyTexture(void* textureId)
+{
+    // Placeholder for texture cleanup
+    // A full implementation would free the DirectX/OpenGL texture resources
+}
+
 #pragma endregion test code for ImGUI, went into another direction
 
 static void mono_Delay(int milliseconds)
