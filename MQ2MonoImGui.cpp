@@ -230,6 +230,66 @@ void mono_ImGUI_PopStyleColor(int count)
 	ImGui::PopStyleColor(count);
 }
 
+// Style variables
+void mono_ImGUI_PushStyleVarFloat(int which, float value)
+{
+	ImGui::PushStyleVar((ImGuiStyleVar)which, value);
+}
+
+void mono_ImGUI_PushStyleVarVec2(int which, float x, float y)
+{
+	ImGui::PushStyleVar((ImGuiStyleVar)which, ImVec2(x, y));
+}
+
+void mono_ImGUI_PopStyleVar(int count)
+{
+	ImGui::PopStyleVar(count);
+}
+
+float mono_ImGUI_GetStyleVarFloat(int which)
+{
+	ImGuiStyle& style = ImGui::GetStyle();
+	switch ((ImGuiStyleVar)which)
+	{
+	case ImGuiStyleVar_Alpha: return style.Alpha;
+	case ImGuiStyleVar_DisabledAlpha: return style.DisabledAlpha;
+	case ImGuiStyleVar_WindowRounding: return style.WindowRounding;
+	case ImGuiStyleVar_WindowBorderSize: return style.WindowBorderSize;
+	case ImGuiStyleVar_ChildRounding: return style.ChildRounding;
+	case ImGuiStyleVar_ChildBorderSize: return style.ChildBorderSize;
+	case ImGuiStyleVar_PopupRounding: return style.PopupRounding;
+	case ImGuiStyleVar_PopupBorderSize: return style.PopupBorderSize;
+	case ImGuiStyleVar_FrameRounding: return style.FrameRounding;
+	case ImGuiStyleVar_FrameBorderSize: return style.FrameBorderSize;
+	case ImGuiStyleVar_IndentSpacing: return style.IndentSpacing;
+	case ImGuiStyleVar_ScrollbarSize: return style.ScrollbarSize;
+	case ImGuiStyleVar_ScrollbarRounding: return style.ScrollbarRounding;
+	case ImGuiStyleVar_GrabMinSize: return style.GrabMinSize;
+	case ImGuiStyleVar_GrabRounding: return style.GrabRounding;
+	case ImGuiStyleVar_TabRounding: return style.TabRounding;
+	default: return 0.0f;
+	}
+}
+
+void mono_ImGUI_GetStyleVarVec2(int which, float* x, float* y)
+{
+	if (!x || !y) return;
+	ImGuiStyle& style = ImGui::GetStyle();
+	switch ((ImGuiStyleVar)which)
+	{
+	case ImGuiStyleVar_WindowPadding: *x = style.WindowPadding.x; *y = style.WindowPadding.y; break;
+	case ImGuiStyleVar_WindowMinSize: *x = style.WindowMinSize.x; *y = style.WindowMinSize.y; break;
+	case ImGuiStyleVar_WindowTitleAlign: *x = style.WindowTitleAlign.x; *y = style.WindowTitleAlign.y; break;
+	case ImGuiStyleVar_FramePadding: *x = style.FramePadding.x; *y = style.FramePadding.y; break;
+	case ImGuiStyleVar_ItemSpacing: *x = style.ItemSpacing.x; *y = style.ItemSpacing.y; break;
+	case ImGuiStyleVar_ItemInnerSpacing: *x = style.ItemInnerSpacing.x; *y = style.ItemInnerSpacing.y; break;
+	case ImGuiStyleVar_CellPadding: *x = style.CellPadding.x; *y = style.CellPadding.y; break;
+	case ImGuiStyleVar_ButtonTextAlign: *x = style.ButtonTextAlign.x; *y = style.ButtonTextAlign.y; break;
+	case ImGuiStyleVar_SelectableTextAlign: *x = style.SelectableTextAlign.x; *y = style.SelectableTextAlign.y; break;
+	default: *x = 0.0f; *y = 0.0f; break;
+	}
+}
+
 void mono_ImGUI_TextWrapped(MonoString* text)
 {
 	if (!text) return;

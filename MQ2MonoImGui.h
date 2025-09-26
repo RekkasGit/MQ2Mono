@@ -66,6 +66,13 @@ bool mono_ImGUI_TableNextColumn();
 void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
 void mono_ImGUI_PopStyleColor(int count);
 
+// Style variables
+void mono_ImGUI_PushStyleVarFloat(int which, float value);
+void mono_ImGUI_PushStyleVarVec2(int which, float x, float y);
+void mono_ImGUI_PopStyleVar(int count);
+float mono_ImGUI_GetStyleVarFloat(int which);
+void mono_ImGUI_GetStyleVarVec2(int which, float* x, float* y);
+
 // Combo
 bool mono_ImGUI_BeginCombo(MonoString* label, MonoString* preview, int flags);
 void mono_ImGUI_EndCombo();

@@ -200,6 +200,13 @@ void InitMono()
     mono_add_internal_call("MonoCore.Core::imgui_PushStyleColor", &mono_ImGUI_PushStyleColor);
     mono_add_internal_call("MonoCore.Core::imgui_PopStyleColor", &mono_ImGUI_PopStyleColor);
 
+    // Style variables
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleVarFloat", &mono_ImGUI_PushStyleVarFloat);
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleVarVec2", &mono_ImGUI_PushStyleVarVec2);
+    mono_add_internal_call("MonoCore.Core::imgui_PopStyleVar", &mono_ImGUI_PopStyleVar);
+    mono_add_internal_call("MonoCore.Core::imgui_GetStyleVarFloat", &mono_ImGUI_GetStyleVarFloat);
+    mono_add_internal_call("MonoCore.Core::imgui_GetStyleVarVec2", &mono_ImGUI_GetStyleVarVec2);
+
     // Text wrapping and window sizing
     mono_add_internal_call("MonoCore.Core::imgui_TextWrapped", &mono_ImGUI_TextWrapped);
     // Expose unformatted text render to avoid printf-style format crashes
