@@ -64,6 +64,8 @@ or
 This will be in the project root of MQ2Mono for 32bit and there is a folder for 64bit as well. <br/>
 Make sure the macroquest.exe is present in the directory you put the file in. <br/>
 </li>
+  <img width="628" height="224" alt="image" src="https://github.com/user-attachments/assets/c33a805d-b546-40e3-becc-927a801e428c" />
+
 </ul>
 
 ### Authors
