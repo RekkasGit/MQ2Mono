@@ -13,8 +13,13 @@
 #include <unordered_map>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <mq/imgui/Widgets.h>
+#include "MQ2MonoImGui.h"
+#include "MQ2MonoShared.h"
 PreSetup("MQ2Mono");
-PLUGIN_VERSION(0.33);
+
+// ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
+PLUGIN_VERSION(0.34);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -36,14 +41,6 @@ PLUGIN_VERSION(0.33);
  bool mono_AddCommand(MonoString* string);
  void mono_ClearCommands();
  void mono_RemoveCommand(MonoString* text);
- //IMGUI calls, not in use really was a test
- bool mono_ImGUI_Begin(MonoString* name, int flags);
- bool mono_ImGUI_Button(MonoString* name);
- void mono_ImGUI_End();
- boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
- void mono_ImGUI_Begin_OpenFlagSet(MonoString* name,bool open);
-  //end temp methods
- 
  bool InitAppDomain(std::string appDomainName);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
@@ -65,105 +62,16 @@ PLUGIN_VERSION(0.33);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.33";
+ std::string version = "0.34";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
  /// we need to keep track of.
  /// </summary>
- struct monoAppDomainInfo
- {
-	 std::string m_appDomainName;
-	 //app domain we have created for e3
-	 MonoDomain* m_appDomain=nullptr;
-	 //core.dll information so we can bind to it
-	 MonoAssembly* m_csharpAssembly = nullptr;
-	 MonoImage* m_coreAssemblyImage = nullptr;
-	 MonoClass* m_classInfo = nullptr;
-	 MonoObject* m_classInstance = nullptr;
-	 //methods that we call in C# if they are available
-	 MonoMethod* m_OnPulseMethod = nullptr;
-	 MonoMethod* m_OnWriteChatColor = nullptr;
-	 MonoMethod* m_OnIncomingChat = nullptr;
-	 MonoMethod* m_OnInit = nullptr;
-	 MonoMethod* m_OnUpdateImGui = nullptr;
-	 MonoMethod* m_OnStop = nullptr;
-	 MonoMethod* m_OnCommand = nullptr;
-	 MonoMethod* m_OnSetSpawns = nullptr;
-	 MonoMethod* m_OnQuery = nullptr;
+#include "MQ2MonoShared.h"
 
-	 std::map<std::string, bool> m_IMGUI_OpenWindows;
-	 std::map<std::string, bool> m_IMGUI_CheckboxValues;
-	 std::map<std::string, bool> m_IMGUI_RadioButtonValues;
-	 std::string m_CurrentWindow;
-	 bool m_IMGUI_Open = true;
-	 int m_delayTime = 0;//amount of time in milliseonds that was set by C#
-	 std::chrono::steady_clock::time_point m_delayTimer = std::chrono::steady_clock::now(); //the time this was issued + m_delayTime
-	 std::deque<std::string> m_CommandList;
-	 bool AddCommand(std::string commandName)
-	 {
-		 if (!IsCommand(commandName.c_str()))
-		 {
-			 m_CommandList.push_back(commandName);
-
-			 mq::AddCommand(commandName.c_str(), [this, commandName](PlayerClient*, const char* args) -> void
-				 {
-
-					 if (this->m_appDomain)
-					 {
-						 if (this->m_OnCommand)
-						 {
-							 std::string line = args;
-							 line = commandName + " " + line;
-							 mono_domain_set(this->m_appDomain, false);
-							 MonoString* monoLine = mono_string_new(this->m_appDomain, line.c_str());
-							 void* params[1] =
-							 {
-								 monoLine
-
-							 };
-							 mono_runtime_invoke(this->m_OnCommand, this->m_classInstance, params, nullptr);
-						 }
-					 }
-				 });
-			 return true;
-		 }
-		 return false;
-		 
-	 }
-	 void RemoveCommand(std::string command)
-	 {
-		 int count = 0;
-		 int processCount = static_cast<int>(this->m_CommandList.size());
-		 while (count < processCount)
-		 {
-			 count++;
-			 std::string currentKey = this->m_CommandList.front();
-			 m_CommandList.pop_front();
-			 if (!ci_equals(currentKey, command))
-			 {
-				 m_CommandList.push_back(currentKey);
-			 }
-			 else
-			 {
-				 mq::RemoveCommand(currentKey.c_str());
-			 }
-		 }
-	 }
-	 void ClearCommands()
-	 {
-		 while (this->m_CommandList.size() > 0)
-		 {
-			 mq::RemoveCommand(m_CommandList.front().c_str());
-			 m_CommandList.pop_front();
-		 }
-		
-	 }
-
- };
-
- std::map<std::string, monoAppDomainInfo> monoAppDomains;
- std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
+std::map<std::string, monoAppDomainInfo> monoAppDomains;
+std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
  //used to keep a revolving list of who is valid to process. 
  std::deque<std::string> appDomainProcessQueue;
  uint32_t bmUpdateMonoOnPulse = 0;
@@ -242,12 +150,122 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mono_GetHoverWindowName", &mono_GetHoverWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
 	
-	//I'm GUI stuff
+	//ImGui stuff
 	mono_add_internal_call("MonoCore.Core::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.Core::imgui_Button", &mono_ImGUI_Button);
+	mono_add_internal_call("MonoCore.Core::imgui_ButtonEx", &mono_ImGUI_ButtonEx);
+	mono_add_internal_call("MonoCore.Core::imgui_SmallButton", &mono_ImGUI_SmallButton);
 	mono_add_internal_call("MonoCore.Core::imgui_End", &mono_ImGUI_End);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagSet", &mono_ImGUI_Begin_OpenFlagSet);
 	mono_add_internal_call("MonoCore.Core::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
+	mono_add_internal_call("MonoCore.Core::imgui_Text", &mono_ImGUI_Text);
+	mono_add_internal_call("MonoCore.Core::imgui_Separator", &mono_ImGUI_Separator);
+	mono_add_internal_call("MonoCore.Core::imgui_SameLine", &mono_ImGUI_SameLine);
+	mono_add_internal_call("MonoCore.Core::imgui_SameLineEx", &mono_ImGUI_SameLineEx);
+	mono_add_internal_call("MonoCore.Core::imgui_Checkbox", &mono_ImGUI_Checkbox);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginTabBar", &mono_ImGUI_BeginTabBar);
+	mono_add_internal_call("MonoCore.Core::imgui_EndTabBar", &mono_ImGUI_EndTabBar);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginTabItem", &mono_ImGUI_BeginTabItem);
+	mono_add_internal_call("MonoCore.Core::imgui_EndTabItem", &mono_ImGUI_EndTabItem);
+	mono_add_internal_call("MonoCore.Core::imgui_BeginChild", &mono_ImGUI_BeginChild);
+	mono_add_internal_call("MonoCore.Core::imgui_EndChild", &mono_ImGUI_EndChild);
+	mono_add_internal_call("MonoCore.Core::imgui_Selectable", &mono_ImGUI_Selectable);
+	mono_add_internal_call("MonoCore.Core::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
+    mono_add_internal_call("MonoCore.Core::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
+    mono_add_internal_call("MonoCore.Core::imgui_InputText", &mono_ImGUI_InputText);
+    mono_add_internal_call("MonoCore.Core::imgui_InputText_Get", &mono_ImGUI_InputText_Get);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextItemWidth", &mono_ImGUI_SetNextItemWidth);
+    // Combo wrappers
+    mono_add_internal_call("MonoCore.Core::imgui_BeginCombo", &mono_ImGUI_BeginCombo);
+    mono_add_internal_call("MonoCore.Core::imgui_EndCombo", &mono_ImGUI_EndCombo);
+    // Right align helper
+    mono_add_internal_call("MonoCore.Core::imgui_RightAlignButton", &mono_ImGUI_RightAlignButton);
+
+    // Context menus / popups
+    mono_add_internal_call("MonoCore.Core::imgui_BeginPopupContextItem", &mono_ImGUI_BeginPopupContextItem);
+    mono_add_internal_call("MonoCore.Core::imgui_BeginPopupContextWindow", &mono_ImGUI_BeginPopupContextWindow);
+    mono_add_internal_call("MonoCore.Core::imgui_EndPopup", &mono_ImGUI_EndPopup);
+    mono_add_internal_call("MonoCore.Core::imgui_MenuItem", &mono_ImGUI_MenuItem);
+
+    // Tables
+    mono_add_internal_call("MonoCore.Core::imgui_BeginTable", &mono_ImGUI_BeginTable);
+    mono_add_internal_call("MonoCore.Core::imgui_EndTable", &mono_ImGUI_EndTable);
+    mono_add_internal_call("MonoCore.Core::imgui_TableSetupColumn", &mono_ImGUI_TableSetupColumn);
+    mono_add_internal_call("MonoCore.Core::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);
+    mono_add_internal_call("MonoCore.Core::imgui_TableNextRow", &mono_ImGUI_TableNextRow);
+    mono_add_internal_call("MonoCore.Core::imgui_TableNextColumn", &mono_ImGUI_TableNextColumn);
+
+    // Colors / styled text
+    mono_add_internal_call("MonoCore.Core::imgui_TextColored", &mono_ImGUI_TextColored);
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleColor", &mono_ImGUI_PushStyleColor);
+    mono_add_internal_call("MonoCore.Core::imgui_PopStyleColor", &mono_ImGUI_PopStyleColor);
+
+    // Style variables
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleVarFloat", &mono_ImGUI_PushStyleVarFloat);
+    mono_add_internal_call("MonoCore.Core::imgui_PushStyleVarVec2", &mono_ImGUI_PushStyleVarVec2);
+    mono_add_internal_call("MonoCore.Core::imgui_PopStyleVar", &mono_ImGUI_PopStyleVar);
+    mono_add_internal_call("MonoCore.Core::imgui_GetStyleVarFloat", &mono_ImGUI_GetStyleVarFloat);
+    mono_add_internal_call("MonoCore.Core::imgui_GetStyleVarVec2", &mono_ImGUI_GetStyleVarVec2);
+
+    // Text wrapping and window sizing
+    mono_add_internal_call("MonoCore.Core::imgui_TextWrapped", &mono_ImGUI_TextWrapped);
+    // Expose unformatted text render to avoid printf-style format crashes
+    mono_add_internal_call("MonoCore.Core::imgui_TextUnformatted", &mono_ImGUI_TextUnformatted);
+    mono_add_internal_call("MonoCore.Core::imgui_PushTextWrapPos", &mono_ImGUI_PushTextWrapPos);
+    mono_add_internal_call("MonoCore.Core::imgui_PopTextWrapPos", &mono_ImGUI_PopTextWrapPos);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowSizeConstraints", &mono_ImGUI_SetNextWindowSizeConstraints);
+    
+    // New window control functions
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowBgAlpha", &mono_ImGUI_SetNextWindowBgAlpha);
+    mono_add_internal_call("MonoCore.Core::imgui_SetNextWindowSize", &mono_ImGUI_SetNextWindowSize);
+    mono_add_internal_call("MonoCore.Core::imgui_IsWindowHovered", &mono_ImGUI_IsWindowHovered);
+    mono_add_internal_call("MonoCore.Core::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
+    // Sliders
+    mono_add_internal_call("MonoCore.Core::imgui_SliderInt", &mono_ImGUI_SliderInt);
+    mono_add_internal_call("MonoCore.Core::imgui_SliderDouble", &mono_ImGUI_SliderDouble);
+    
+    // Tree nodes
+    mono_add_internal_call("MonoCore.Core::imgui_TreeNode", &mono_ImGUI_TreeNode);
+    mono_add_internal_call("MonoCore.Core::imgui_TreeNodeEx", &mono_ImGUI_TreeNodeEx);
+    mono_add_internal_call("MonoCore.Core::imgui_TreePop", &mono_ImGUI_TreePop);
+    mono_add_internal_call("MonoCore.Core::imgui_CollapsingHeader", &mono_ImGUI_CollapsingHeader);
+
+    // Tooltips and hover detection
+    mono_add_internal_call("MonoCore.Core::imgui_IsItemHovered", &mono_ImGUI_IsItemHovered);
+    mono_add_internal_call("MonoCore.Core::imgui_BeginTooltip", &mono_ImGUI_BeginTooltip);
+    mono_add_internal_call("MonoCore.Core::imgui_EndTooltip", &mono_ImGUI_EndTooltip);
+
+    // Image display
+    mono_add_internal_call("MonoCore.Core::imgui_Image", &mono_ImGUI_Image);
+
+    // Fonts
+    mono_add_internal_call("MonoCore.Core::imgui_AddFontFromFileTTF", &mono_ImGUI_AddFontFromFileTTF);
+    mono_add_internal_call("MonoCore.Core::imgui_PushFont", &mono_ImGUI_PushFont);
+    mono_add_internal_call("MonoCore.Core::imgui_PopFont", &mono_ImGUI_PopFont);
+    mono_add_internal_call("MonoCore.Core::imgui_PushMaterialIconsFont", &mono_ImGUI_PushMaterialIconsFont);
+
+    // Spell icon drawing
+    mono_add_internal_call("MonoCore.Core::imgui_DrawSpellIconByIconIndex", &mono_ImGUI_DrawSpellIconByIconIndex);
+    mono_add_internal_call("MonoCore.Core::imgui_DrawSpellIconBySpellID", &mono_ImGUI_DrawSpellIconBySpellID);
+
+    // Drawing functions for custom backgrounds
+    mono_add_internal_call("MonoCore.Core::imgui_GetCursorPosY", &mono_ImGUI_GetCursorPosY);
+    mono_add_internal_call("MonoCore.Core::imgui_GetCursorScreenPosX", &mono_ImGUI_GetCursorScreenPosX);
+    mono_add_internal_call("MonoCore.Core::imgui_GetCursorScreenPosY", &mono_ImGUI_GetCursorScreenPosY);
+    mono_add_internal_call("MonoCore.Core::imgui_GetTextLineHeightWithSpacing", &mono_ImGUI_GetTextLineHeightWithSpacing);
+    mono_add_internal_call("MonoCore.Core::imgui_GetFrameHeight", &mono_ImGUI_GetFrameHeight);
+    mono_add_internal_call("MonoCore.Core::imgui_GetWindowDrawList_AddRectFilled", &mono_ImGUI_GetWindowDrawList_AddRectFilled);
+
+    // Item rect + color helpers
+    mono_add_internal_call("MonoCore.Core::imgui_GetItemRectMinX", &mono_ImGUI_GetItemRectMinX);
+    mono_add_internal_call("MonoCore.Core::imgui_GetItemRectMinY", &mono_ImGUI_GetItemRectMinY);
+    mono_add_internal_call("MonoCore.Core::imgui_GetItemRectMaxX", &mono_ImGUI_GetItemRectMaxX);
+    mono_add_internal_call("MonoCore.Core::imgui_GetItemRectMaxY", &mono_ImGUI_GetItemRectMaxY);
+    mono_add_internal_call("MonoCore.Core::imgui_GetColorU32", &mono_ImGUI_GetColorU32);
+
+    // Texture creation from raw data
+    mono_add_internal_call("MonoCore.Core::mq_CreateTextureFromData", &mono_CreateTextureFromData);
+    mono_add_internal_call("MonoCore.Core::mq_DestroyTexture", &mono_DestroyTexture);
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
@@ -1109,8 +1127,7 @@ PLUGIN_API void OnZoned()
  */
 PLUGIN_API void OnUpdateImGui()
 {
-	//not currently using this
-	return;
+	// Allow managed domains to render their ImGui each frame
 	if (!initialized) return;
 	if (monoAppDomains.size() == 0) return;
 
@@ -1236,97 +1253,7 @@ static void mono_RemoveCommand(MonoString* text)
 		domainInfo.RemoveCommand(str);
 	}
 }
-#pragma region
-//IMGUI test code, not really being used atm as i went into another direction
-static void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
-{
-	char* cppString = mono_string_to_utf8(name);
-	std::string str(cppString);
-	mono_free(cppString);
-
-	MonoDomain* currentDomain = mono_domain_get();
-
-	if (currentDomain)
-	{
-		std::string key = monoAppDomainPtrToString[currentDomain];
-		//pointer to the value in the map
-		auto & domainInfo = monoAppDomains[key];
-		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
-		{
-			//key doesn't exist, add it
-			domainInfo.m_IMGUI_OpenWindows[str] = true;
-		}
-		domainInfo.m_IMGUI_OpenWindows[str] = open;
-		//put updates back
-	
-	}
-
-	
-
-}
-static boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name)
-{
-	char* cppString = mono_string_to_utf8(name);
-	std::string str(cppString);
-	mono_free(cppString);
-	MonoDomain* currentDomain = mono_domain_get();
-
-	if (currentDomain)
-	{
-		std::string key = monoAppDomainPtrToString[currentDomain];
-		//pointer to the value in the map
-		auto& domainInfo = monoAppDomains[key];
-		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
-		{
-			//key doesn't exist, add it
-			domainInfo.m_IMGUI_OpenWindows[str] = true;
-		}
-		return domainInfo.m_IMGUI_OpenWindows[str];
-	}
-	return false;
-
-}
-//define methods exposde to the plugin to be executed
-static bool mono_ImGUI_Begin(MonoString* name, int flags)
-{
-
-	char* cppString = mono_string_to_utf8(name);
-	std::string str(cppString);
-	mono_free(cppString);
-	MonoDomain* currentDomain = mono_domain_get();
-
-	if (currentDomain)
-	{
-		std::string key = monoAppDomainPtrToString[currentDomain];
-		//pointer to the value in the map
-		auto& domainInfo = monoAppDomains[key];
-
-		domainInfo.m_CurrentWindow = str;
-		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
-		{
-			//key doesn't exist, add it
-			domainInfo.m_IMGUI_OpenWindows[str] = true;
-		}
-
-		return ImGui::Begin(str.c_str(), &domainInfo.m_IMGUI_OpenWindows[str], flags);
-	}
-	return false;
-}
-
-
-static bool mono_ImGUI_Button(MonoString* name)
-{
-	char* cppString = mono_string_to_utf8(name);
-	std::string str(cppString);
-	mono_free(cppString);
-	return ImGui::Button(str.c_str());
-}
-
-static void mono_ImGUI_End()
-{
-	ImGui::End();
-}
-#pragma endregion test code for ImGUI, went into another direction
+#pragma endregion
 
 static void mono_Delay(int milliseconds)
 {

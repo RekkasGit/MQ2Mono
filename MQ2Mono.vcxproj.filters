@@ -15,9 +15,18 @@
     <ClCompile Include="MQ2Mono.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MQ2MonoImGui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MQ2MonoImGui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MQ2MonoShared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
