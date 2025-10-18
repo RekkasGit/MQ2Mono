@@ -60,9 +60,9 @@ or
   <li>Place the Directory: Ensure that you place the directory in the Macroquest/plugins folder. Do not place it in Macroquest/src/plugins. </li>
 <li>Add the Plugin: Add the plugin to your 'macroquest' solution. </li>
 <li>Build MQ2Mono: Compile the MQ2Mono component.</li>
-<li>Copy the DLL:  Copy the mono-2.0-sgen.dll (32bit/64bit) file into the appropriate build directory. <br/>
-This will be either build/bin/release/ or build/bin/debug/, depending on your build configuration.<br/>
-Make sure the macroquest.exe is present in the directory.<br/>
+<li>Copy the DLL:  Copy the mono-2.0-sgen.dll (32bit/64bit) file into the appropriate root directory. <br/>
+This will be in the project root of MQ2Mono for 32bit and there is a folder for 64bit as well. <br/>
+Make sure the macroquest.exe is present in the directory you put the file in. <br/>
 </li>
 </ul>
 
