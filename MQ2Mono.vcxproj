@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectGuid>{643CFF4B-DC2F-4F76-A149-71B631375A43}</ProjectGuid>
+    <ProjectGuid>{33EDC461-0E7A-480B-94B3-1E0C6718C620}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -99,9 +99,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="MQ2Mono.cpp" />
+    <ClCompile Include="MQ2MonoImGui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="MQ2MonoImGui.h" />
+    <ClInclude Include="MQ2MonoShared.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MQ2Mono.rc" />
