@@ -82,6 +82,7 @@ bool mono_ImGUI_RightAlignButton(MonoString* name);
 
 // Text input
 bool mono_ImGUI_InputText(MonoString* id, MonoString* initial);
+bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* initial, float width, float height);
 MonoString* mono_ImGUI_InputText_Get(MonoString* id);
 
 // Sliders

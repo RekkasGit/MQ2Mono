@@ -6,6 +6,8 @@
 #include <mq/imgui/Widgets.h>
 #include <string>
 #include <cstring>
+#include <vector>
+#include <algorithm>
 
 // All ImGui wrapper function definitions moved out of MQ2Mono.cpp
 // These rely on globals declared in MQ2MonoShared.h and defined in MQ2Mono.cpp
@@ -425,6 +427,44 @@ bool mono_ImGUI_InputText(MonoString* id, MonoString* initial)
 	if (changed)
 	{
 		it->second = std::string(buf);
+		return true;
+	}
+	return false;
+}
+
+bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* initial, float width, float height)
+{
+	if (!id) return false;
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC ? idC : "");
+	if (idC) mono_free(idC);
+
+	char* initC = mono_string_to_utf8(initial);
+	std::string initStr(initC ? initC : "");
+	if (initC) mono_free(initC);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+	if (it == domainInfo.m_IMGUI_InputTextValues.end())
+	{
+		domainInfo.m_IMGUI_InputTextValues[idStr] = initStr;
+		it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+	}
+
+	const std::string& currentValue = it->second;
+	size_t capacity = std::max<size_t>(currentValue.size() + 4096, static_cast<size_t>(8192));
+	std::vector<char> buffer(capacity, 0);
+	std::strncpy(buffer.data(), currentValue.c_str(), capacity - 1);
+
+	ImVec2 inputSize(width <= 0.0f ? 0.0f : width, height <= 0.0f ? 0.0f : height);
+	bool changed = ImGui::InputTextMultiline(idStr.c_str(), buffer.data(), capacity, inputSize, ImGuiInputTextFlags_AllowTabInput);
+	if (changed)
+	{
+		it->second = std::string(buffer.data());
 		return true;
 	}
 	return false;
