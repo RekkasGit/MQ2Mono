@@ -684,10 +684,10 @@ void mono_ImGUI_PushMaterialIconsFont()
 	}
 	// else: no-op if not found
 }
+static CTextureAnimation* s_pTASpellIcons = nullptr;
 
 void mono_ImGUI_DrawSpellIconByIconIndex(int iconIndex, float size)
 {
-	static CTextureAnimation* s_pTASpellIcons = nullptr;
 
 	if (!pSidlMgr)
 		return;
