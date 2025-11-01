@@ -250,6 +250,20 @@ void mono_ImGUI_PopStyleColor(int count)
 	ImGui::PopStyleColor(count);
 }
 
+float mono_ImGUI_GetWindowHeight()
+{
+	ImVec2 result = ImGui::GetWindowSize();
+
+	return result.y;
+}
+
+float mono_ImGUI_GetWindowWidth()
+{
+	ImVec2 result = ImGui::GetWindowSize();
+
+	return result.x;
+}
+
 // Style variables
 void mono_ImGUI_PushStyleVarFloat(int which, float value)
 {
@@ -776,6 +790,8 @@ float mono_ImGUI_GetFrameHeight()
 {
     return ImGui::GetFrameHeight();
 }
+
+
 
 void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color)
 {

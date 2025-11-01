@@ -19,6 +19,11 @@ bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height);
 bool mono_ImGUI_SmallButton(MonoString* name);
 void mono_ImGUI_End();
 
+
+float mono_ImGUI_GetWindowHeight();
+float mono_ImGUI_GetWindowWidth();
+
+
 // Text helpers
 void mono_ImGUI_Text(MonoString* text);
 void mono_ImGUI_TextUnformatted(MonoString* text);

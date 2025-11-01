@@ -178,6 +178,10 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextMultiline", &mono_ImGUI_InputTextMultiline);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Get", &mono_ImGUI_InputText_Get);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextItemWidth", &mono_ImGUI_SetNextItemWidth);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
+
+
     // Combo wrappers
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginCombo", &mono_ImGUI_BeginCombo);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndCombo", &mono_ImGUI_EndCombo);
