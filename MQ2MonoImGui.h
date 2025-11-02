@@ -38,6 +38,7 @@ void mono_ImGUI_SetNextItemWidth(float width);
 // Window control helpers
 void mono_ImGUI_SetNextWindowBgAlpha(float alpha);
 void mono_ImGUI_SetNextWindowSize(float width, float height);
+void mono_ImGUI_SetNextWindowSizeWithCond(float width, float height, int cond);
 bool mono_ImGUI_IsWindowHovered();
 float mono_ImGUI_GetWindowWidth();
 float mono_ImGUI_GetWindowHeight();

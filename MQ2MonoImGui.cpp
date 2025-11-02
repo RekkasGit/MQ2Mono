@@ -341,6 +341,11 @@ void mono_ImGUI_SetNextWindowSize(float width, float height)
 	ImGui::SetNextWindowSize(ImVec2(width, height));
 }
 
+void mono_ImGUI_SetNextWindowSizeWithCond(float width, float height, int cond)
+{
+	ImGui::SetNextWindowSize(ImVec2(width, height), (ImGuiCond)cond);
+}
+
 bool mono_ImGUI_IsWindowHovered()
 {
 	return ImGui::IsWindowHovered();
