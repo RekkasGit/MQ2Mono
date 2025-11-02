@@ -167,6 +167,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTabBar", &mono_ImGUI_EndTabBar);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTabItem", &mono_ImGUI_BeginTabItem);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTabItem", &mono_ImGUI_EndTabItem);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushID", &mono_ImGUI_PushID);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PopID", &mono_ImGUI_PopID);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginChild", &mono_ImGUI_BeginChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndChild", &mono_ImGUI_EndChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable", &mono_ImGUI_Selectable);
@@ -176,6 +178,10 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextMultiline", &mono_ImGUI_InputTextMultiline);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Get", &mono_ImGUI_InputText_Get);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextItemWidth", &mono_ImGUI_SetNextItemWidth);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
+
+
     // Combo wrappers
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginCombo", &mono_ImGUI_BeginCombo);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndCombo", &mono_ImGUI_EndCombo);
@@ -190,8 +196,11 @@ void InitMono()
 
     // Tables
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTable", &mono_ImGUI_BeginTable);
-    mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTable", &mono_ImGUI_EndTable);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTableS", &mono_ImGUI_BeginTableSimple);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTable", &mono_ImGUI_EndTable);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupColumn", &mono_ImGUI_TableSetupColumn);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetColumnIndex", &mono_ImGUI_TableSetColumnIndex);
+
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextRow", &mono_ImGUI_TableNextRow);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextColumn", &mono_ImGUI_TableNextColumn);

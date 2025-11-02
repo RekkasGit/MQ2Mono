@@ -184,14 +184,31 @@ void mono_ImGUI_EndTabItem()
 	ImGui::EndTabItem();
 }
 
-bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width)
+bool mono_ImGUI_BeginTableSimple(MonoString* id, int columns, int flags)
 {
 	if (!id) return false;
 	char* sid = mono_string_to_utf8(id);
-	bool result = ImGui::BeginTable(sid, columns, (ImGuiTableFlags)flags, ImVec2(outer_width, 0.0f));
+	std::string strID(sid);
 	mono_free(sid);
+	bool result = ImGui::BeginTable(strID.c_str(), columns, flags);
 	return result;
 }
+
+bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width,float outer_height)
+{
+	if (!id) return false;
+	char* sid = mono_string_to_utf8(id);
+	std::string strID(sid);
+	mono_free(sid);
+	bool result = ImGui::BeginTable(strID.c_str(), columns, (ImGuiTableFlags)flags, ImVec2(outer_width, outer_height));
+	return result;
+}
+
+void mono_ImGUI_TableSetColumnIndex(int index)
+{
+	ImGui::TableSetColumnIndex(index);
+}
+
 void mono_ImGUI_EndTable()
 {
 	ImGui::EndTable();
@@ -199,8 +216,9 @@ void mono_ImGUI_EndTable()
 void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width)
 {
 	if (!label) return;
-	char* slabel = mono_string_to_utf8(label);
-	ImGui::TableSetupColumn(slabel, (ImGuiTableColumnFlags)flags, init_width);
+	char* slabel = mono_string_to_utf8(label); 
+	std::string strLabel(slabel);
+	ImGui::TableSetupColumn(strLabel.c_str(), (ImGuiTableColumnFlags)flags, init_width);
 	mono_free(slabel);
 }
 void mono_ImGUI_TableHeadersRow()
@@ -341,6 +359,16 @@ float mono_ImGUI_GetWindowHeight()
 bool mono_ImGUI_IsMouseClicked(int button)
 {
 	return ImGui::IsMouseClicked(button);
+}
+
+void mono_ImGUI_PushID(int id)
+{
+	ImGui::PushID(id);
+}
+
+void mono_ImGUI_PopID()
+{
+	ImGui::PopID();
 }
 
 bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags)
@@ -758,6 +786,8 @@ float mono_ImGUI_GetFrameHeight()
 {
     return ImGui::GetFrameHeight();
 }
+
+
 
 void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color)
 {

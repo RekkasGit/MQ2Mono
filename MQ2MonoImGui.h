@@ -57,12 +57,16 @@ bool mono_ImGUI_BeginTabItem(MonoString* label);
 void mono_ImGUI_EndTabItem();
 
 // Tables
-bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width);
+bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_width,float outer_height);
+bool mono_ImGUI_BeginTableSimple(MonoString* id, int columns, int flags);
 void mono_ImGUI_EndTable();
 void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width);
 void mono_ImGUI_TableHeadersRow();
 void mono_ImGUI_TableNextRow();
 bool mono_ImGUI_TableNextColumn();
+void mono_ImGUI_TableSetColumnIndex(int index);
+void mono_ImGUI_PushID(int id);
+void mono_ImGUI_PopID();
 
 // Style colors
 void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
