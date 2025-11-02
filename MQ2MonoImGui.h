@@ -39,12 +39,14 @@ void mono_ImGUI_SetNextItemWidth(float width);
 void mono_ImGUI_SetNextWindowBgAlpha(float alpha);
 void mono_ImGUI_SetNextWindowSize(float width, float height);
 bool mono_ImGUI_IsWindowHovered();
+float mono_ImGUI_GetWindowWidth();
+float mono_ImGUI_GetWindowHeight();
 bool mono_ImGUI_IsMouseClicked(int button);
 void mono_ImGUI_SetNextWindowSizeConstraints(float min_w, float min_h, float max_w, float max_h);
 
 // Widgets
 bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue);
-bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border);
+bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags);
 void mono_ImGUI_EndChild();
 bool mono_ImGUI_Selectable(MonoString* label, bool selected);
 

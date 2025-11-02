@@ -220,6 +220,8 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextWindowBgAlpha", &mono_ImGUI_SetNextWindowBgAlpha);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextWindowSize", &mono_ImGUI_SetNextWindowSize);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsWindowHovered", &mono_ImGUI_IsWindowHovered);
+    mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
+    mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
     // Sliders
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SliderInt", &mono_ImGUI_SliderInt);

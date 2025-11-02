@@ -328,18 +328,28 @@ bool mono_ImGUI_IsWindowHovered()
 	return ImGui::IsWindowHovered();
 }
 
+float mono_ImGUI_GetWindowWidth()
+{
+	return ImGui::GetWindowWidth();
+}
+
+float mono_ImGUI_GetWindowHeight()
+{
+	return ImGui::GetWindowHeight();
+}
+
 bool mono_ImGUI_IsMouseClicked(int button)
 {
 	return ImGui::IsMouseClicked(button);
 }
 
-bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, bool border)
+bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags)
 {
 	char* cppString = mono_string_to_utf8(id);
 	std::string str(cppString);
 	mono_free(cppString);
 	ImVec2 size(width, height);
-	return ImGui::BeginChild(str.c_str(), size, border);
+	return ImGui::BeginChild(str.c_str(), size, (ImGuiChildFlags)child_flags, (ImGuiWindowFlags)window_flags);
 }
 
 void mono_ImGUI_EndChild()
