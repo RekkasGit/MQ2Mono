@@ -25,7 +25,7 @@ void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 		auto& domainInfo = monoAppDomains[key];
 		if (domainInfo.m_IMGUI_OpenWindows.find(str) == domainInfo.m_IMGUI_OpenWindows.end())
 		{
-			domainInfo.m_IMGUI_OpenWindows[str] = true;
+			domainInfo.m_IMGUI_OpenWindows[str] = open;
 		}
 		domainInfo.m_IMGUI_OpenWindows[str] = open;
 	}
