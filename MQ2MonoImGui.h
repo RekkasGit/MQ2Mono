@@ -89,8 +89,13 @@ bool mono_ImGUI_RightAlignButton(MonoString* name);
 
 // Text input
 bool mono_ImGUI_InputText(MonoString* id, MonoString* initial);
+bool mono_ImGUI_InputTextClear(MonoString* id);
 bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* initial, float width, float height);
 MonoString* mono_ImGUI_InputText_Get(MonoString* id);
+
+// Int input
+bool mono_ImGUI_InputInt(MonoString* id, int initial, int steps, int fastSteps);
+int mono_ImGUI_InputInt_Get(MonoString* id);
 
 // Sliders
 bool mono_ImGUI_SliderInt(MonoString* id, int* value, int minValue, int maxValue);

@@ -175,6 +175,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextClear", &mono_ImGUI_InputTextClear);
+
+	//mono_ImGUI_InputTextClear
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextMultiline", &mono_ImGUI_InputTextMultiline);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Get", &mono_ImGUI_InputText_Get);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextItemWidth", &mono_ImGUI_SetNextItemWidth);
@@ -233,7 +236,15 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
-    // Sliders
+    
+	// Input int
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt", &mono_ImGUI_InputInt);
+	//mono_ImGUI_InputTextClear
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt_Get", &mono_ImGUI_InputInt_Get);
+
+	//mono_ImGUI_InputInt
+
+	// Sliders
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SliderInt", &mono_ImGUI_SliderInt);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_SliderDouble", &mono_ImGUI_SliderDouble);
     

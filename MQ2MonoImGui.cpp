@@ -441,6 +441,65 @@ bool mono_ImGUI_RightAlignButton(MonoString* name)
 	return ImGui::Button(label.c_str());
 }
 
+bool mono_ImGUI_InputTextClear(MonoString* id)
+{
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC);
+	mono_free(idC);
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+	if (it != domainInfo.m_IMGUI_InputTextValues.end())
+	{
+		it->second = "";
+		//doesn't exist
+	}
+}
+
+bool mono_ImGUI_InputInt(MonoString* id, int initial,int steps, int fastSteps)
+{
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC);
+	mono_free(idC);
+
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
+	if (it == domainInfo.m_IMGUI_InputIntValues.end())
+	{
+		domainInfo.m_IMGUI_InputIntValues[idStr] = initial;
+		it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
+	}
+	bool changed = ImGui::InputInt(idStr.c_str(), &it->second,steps,fastSteps);
+	if (changed)
+	{
+		return true;
+	}
+	return false;
+}
+int mono_ImGUI_InputInt_Get(MonoString* id)
+{
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC);
+	mono_free(idC);
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
+	if (it == domainInfo.m_IMGUI_InputIntValues.end())
+	{
+		return -1;
+	}
+	return it->second;
+}
 bool mono_ImGUI_InputText(MonoString* id, MonoString* initial)
 {
 	char* idC = mono_string_to_utf8(id);
