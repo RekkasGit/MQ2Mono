@@ -176,7 +176,8 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextClear", &mono_ImGUI_InputTextClear);
-
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_CalcTextSizeX", &mono_ImGUI_CalcTextSizeX);
+	
 	//mono_ImGUI_InputTextClear
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextMultiline", &mono_ImGUI_InputTextMultiline);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Get", &mono_ImGUI_InputText_Get);

@@ -424,6 +424,17 @@ void mono_ImGUI_EndCombo()
 	ImGui::EndCombo();
 }
 
+float mono_ImGUI_CalcTextSizeX(MonoString* input)
+{
+	if (!input) return false;
+	char* strptr = mono_string_to_utf8(input);
+	std::string inputStr(strptr);
+	if (strptr) mono_free(strptr);
+
+	ImVec2 textSize = ImGui::CalcTextSize(inputStr.c_str());
+	return textSize.x;
+}
+
 bool mono_ImGUI_RightAlignButton(MonoString* name)
 {
 	if (!name) return false;

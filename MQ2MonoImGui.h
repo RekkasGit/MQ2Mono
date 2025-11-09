@@ -26,6 +26,7 @@ void mono_ImGUI_TextWrapped(MonoString* text);
 void mono_ImGUI_PushTextWrapPos(float wrap_local_pos_x);
 void mono_ImGUI_PopTextWrapPos();
 void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
+float mono_ImGUI_CalcTextSizeX(MonoString* input);
 
 // Layout helpers
 void mono_ImGUI_Separator();
