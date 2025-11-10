@@ -280,6 +280,7 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetTextLineHeightWithSpacing", &mono_ImGUI_GetTextLineHeightWithSpacing);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetFrameHeight", &mono_ImGUI_GetFrameHeight);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRectFilled", &mono_ImGUI_GetWindowDrawList_AddRectFilled);
+    mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddText", &mono_ImGUI_GetWindowDrawList_AddText);
 
     // Item rect + color helpers
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectMinX", &mono_ImGUI_GetItemRectMinX);
