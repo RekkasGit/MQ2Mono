@@ -878,9 +878,11 @@ void mono_ImGUI_GetWindowDrawList_AddText(float x, float y, uint32_t color, Mono
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     if (drawList && text)
     {
-        const char* ctext = mono_string_to_utf8(text);
-        drawList->AddText(ImVec2(x, y), color, ctext);
-    }
+        char* ctext = mono_string_to_utf8(text);
+		std::string input(ctext);
+		mono_free(ctext);
+		drawList->AddText(ImVec2(x, y), color, input.c_str());
+	}
 }
 
 float mono_ImGUI_GetItemRectMinX()
