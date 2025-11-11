@@ -464,8 +464,7 @@ bool mono_ImGUI_InputTextClear(MonoString* id)
 	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
 	if (it != domainInfo.m_IMGUI_InputTextValues.end())
 	{
-		it->second = "";
-		//doesn't exist
+		domainInfo.m_IMGUI_InputTextValues.erase(it);
 	}
 }
 
