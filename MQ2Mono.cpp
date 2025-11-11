@@ -175,7 +175,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
-	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextClear", &mono_ImGUI_InputTextClear);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Clear", &mono_ImGUI_InputText_Clear);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_CalcTextSizeX", &mono_ImGUI_CalcTextSizeX);
 	
 	//mono_ImGUI_InputTextClear
@@ -242,6 +242,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt", &mono_ImGUI_InputInt);
 	//mono_ImGUI_InputTextClear
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt_Get", &mono_ImGUI_InputInt_Get);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt_Clear", &mono_ImGUI_InputInt_Clear);
+	//bool mono_ImGUI_InputIntClear(MonoString* id)
 
 	//mono_ImGUI_InputInt
 

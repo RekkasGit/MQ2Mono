@@ -452,7 +452,7 @@ bool mono_ImGUI_RightAlignButton(MonoString* name)
 	return ImGui::Button(label.c_str());
 }
 
-bool mono_ImGUI_InputTextClear(MonoString* id)
+bool mono_ImGUI_InputText_Clear(MonoString* id)
 {
 	char* idC = mono_string_to_utf8(id);
 	std::string idStr(idC);
@@ -467,7 +467,21 @@ bool mono_ImGUI_InputTextClear(MonoString* id)
 		domainInfo.m_IMGUI_InputTextValues.erase(it);
 	}
 }
-
+bool mono_ImGUI_InputInt_Clear(MonoString* id)
+{
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC);
+	mono_free(idC);
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
+	if (it != domainInfo.m_IMGUI_InputIntValues.end())
+	{
+		domainInfo.m_IMGUI_InputIntValues.erase(it);
+	}
+}
 bool mono_ImGUI_InputInt(MonoString* id, int initial,int steps, int fastSteps)
 {
 	char* idC = mono_string_to_utf8(id);
