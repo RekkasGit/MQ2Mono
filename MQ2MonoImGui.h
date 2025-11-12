@@ -48,6 +48,8 @@ void mono_ImGUI_SetNextWindowSizeConstraints(float min_w, float min_h, float max
 
 // Widgets
 bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue);
+void mono_ImGUI_Checkbox_Clear(MonoString* id);
+bool mono_ImGUI_Checkbox_Get(MonoString* id);
 bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags);
 void mono_ImGUI_EndChild();
 bool mono_ImGUI_Selectable(MonoString* label, bool selected);

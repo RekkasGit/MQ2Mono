@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <mq/imgui/Widgets.h>
+#include "imgui/misc/cpp/imgui_stdlib.h"
 #include <string>
 #include <cstring>
 #include <vector>
@@ -134,7 +135,47 @@ void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing)
 	ImGui::SameLine(offset_from_start_x, spacing);
 }
 
-bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue)
+void mono_ImGUI_Checkbox_Clear(MonoString* id)
+{
+	char* cppString = mono_string_to_utf8(id);
+	std::string str(cppString);
+	mono_free(cppString);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		
+		auto it = domainInfo.m_IMGUI_CheckboxValues.find(str);
+		if (it != domainInfo.m_IMGUI_CheckboxValues.end())
+		{
+			domainInfo.m_IMGUI_CheckboxValues.erase(it);
+		}
+	}
+}
+
+bool mono_ImGUI_Checkbox_Get(MonoString* id)
+{
+	char* cppString = mono_string_to_utf8(id);
+	std::string str(cppString);
+	mono_free(cppString);
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		
+		auto it = domainInfo.m_IMGUI_CheckboxValues.find(str);
+		if (it != domainInfo.m_IMGUI_CheckboxValues.end())
+		{
+			return it->second;
+		}
+	}
+	return false;
+}
+
+bool mono_ImGUI_Checkbox(MonoString* name, bool currentValue)
 {
 	char* cppString = mono_string_to_utf8(name);
 	std::string str(cppString);
@@ -145,17 +186,17 @@ bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue)
 	{
 		std::string key = monoAppDomainPtrToString[currentDomain];
 		auto& domainInfo = monoAppDomains[key];
-		bool value = defaultValue;
+		
+		domainInfo.m_IMGUI_CheckboxValues[str] = currentValue;
 		auto it = domainInfo.m_IMGUI_CheckboxValues.find(str);
-		if (it != domainInfo.m_IMGUI_CheckboxValues.end())
+		
+		if (ImGui::Checkbox(str.c_str(), &it->second))
 		{
-			value = it->second;
+			return true;
 		}
-		bool changed = ImGui::Checkbox(str.c_str(), &value);
-		domainInfo.m_IMGUI_CheckboxValues[str] = value;
-		return value;
+		return false;
 	}
-	return defaultValue;
+	return false;
 }
 
 bool mono_ImGUI_BeginTabBar(MonoString* name)
@@ -482,30 +523,21 @@ bool mono_ImGUI_InputInt_Clear(MonoString* id)
 		domainInfo.m_IMGUI_InputIntValues.erase(it);
 	}
 }
-bool mono_ImGUI_InputInt(MonoString* id, int initial,int steps, int fastSteps)
+bool mono_ImGUI_InputInt(MonoString* id, int current,int steps, int fastSteps)
 {
 	char* idC = mono_string_to_utf8(id);
 	std::string idStr(idC);
 	mono_free(idC);
-
-
 	MonoDomain* currentDomain = mono_domain_get();
 	if (!currentDomain) return false;
-
 	std::string key = monoAppDomainPtrToString[currentDomain];
 	auto& domainInfo = monoAppDomains[key];
+
+	domainInfo.m_IMGUI_InputIntValues[idStr] = current;
 	auto it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
-	if (it == domainInfo.m_IMGUI_InputIntValues.end())
-	{
-		domainInfo.m_IMGUI_InputIntValues[idStr] = initial;
-		it = domainInfo.m_IMGUI_InputIntValues.find(idStr);
-	}
-	bool changed = ImGui::InputInt(idStr.c_str(), &it->second,steps,fastSteps);
-	if (changed)
-	{
-		return true;
-	}
-	return false;
+
+	return ImGui::InputInt(idStr.c_str(), &it->second, steps, fastSteps);
+
 }
 int mono_ImGUI_InputInt_Get(MonoString* id)
 {
@@ -524,14 +556,14 @@ int mono_ImGUI_InputInt_Get(MonoString* id)
 	}
 	return it->second;
 }
-bool mono_ImGUI_InputText(MonoString* id, MonoString* initial)
+bool mono_ImGUI_InputText(MonoString* id, MonoString* currentValue)
 {
 	char* idC = mono_string_to_utf8(id);
 	std::string idStr(idC);
 	mono_free(idC);
 
-	char* initC = mono_string_to_utf8(initial);
-	std::string initStr(initC ? initC : "");
+	char* initC = mono_string_to_utf8(currentValue);
+	std::string currentStr(initC ? initC : "");
 	if (initC) mono_free(initC);
 
 	MonoDomain* currentDomain = mono_domain_get();
@@ -539,24 +571,72 @@ bool mono_ImGUI_InputText(MonoString* id, MonoString* initial)
 
 	std::string key = monoAppDomainPtrToString[currentDomain];
 	auto& domainInfo = monoAppDomains[key];
+	
 	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
 	if (it == domainInfo.m_IMGUI_InputTextValues.end())
 	{
-		domainInfo.m_IMGUI_InputTextValues[idStr] = initStr;
+		if (it->second != currentStr)
+		{
+			//update it
+			domainInfo.m_IMGUI_InputTextValues[idStr] = currentStr;
+			it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+		}
+	}
+	else
+	{
+		//didn't find it, insert
+		domainInfo.m_IMGUI_InputTextValues[idStr] = currentStr;
 		it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
 	}
-
-	char buf[512];
-	memset(buf, 0, sizeof(buf));
-	strncpy(buf, it->second.c_str(), sizeof(buf) - 1);
-	bool changed = ImGui::InputText(idStr.c_str(), buf, sizeof(buf));
-	if (changed)
+	if (ImGui::InputText(idStr.c_str(), &it->second))
 	{
-		it->second = std::string(buf);
 		return true;
 	}
 	return false;
 }
+
+
+bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* currentValue, float width, float height)
+{
+	char* idC = mono_string_to_utf8(id);
+	std::string idStr(idC);
+	mono_free(idC);
+
+	char* initC = mono_string_to_utf8(currentValue);
+	std::string currentStr(initC ? initC : "");
+	if (initC) mono_free(initC);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+
+	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+	if (it == domainInfo.m_IMGUI_InputTextValues.end())
+	{
+		if (it->second != currentStr)
+		{
+			//update it
+			domainInfo.m_IMGUI_InputTextValues[idStr] = currentStr;
+			it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+		}
+	}
+	else
+	{
+		//didn't find it, insert
+		domainInfo.m_IMGUI_InputTextValues[idStr] = currentStr;
+		it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
+	}
+
+	ImVec2 inputSize(width <= 0.0f ? 0.0f : width, height <= 0.0f ? 0.0f : height);
+
+	if (ImGui::InputTextMultiline(idStr.c_str(), &it->second, inputSize))
+	{
+		return true;
+	}
+	return false;
+}/*
 
 bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* initial, float width, float height)
 {
@@ -594,7 +674,7 @@ bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* initial, float wi
 		return true;
 	}
 	return false;
-}
+}*/
 
 MonoString* mono_ImGUI_InputText_Get(MonoString* id)
 {

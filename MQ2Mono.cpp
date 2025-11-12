@@ -163,6 +163,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SameLine", &mono_ImGUI_SameLine);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SameLineEx", &mono_ImGUI_SameLineEx);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox", &mono_ImGUI_Checkbox);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox_Clear", &mono_ImGUI_Checkbox_Clear);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox_Get", &mono_ImGUI_Checkbox_Get);
+
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTabBar", &mono_ImGUI_BeginTabBar);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTabBar", &mono_ImGUI_EndTabBar);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTabItem", &mono_ImGUI_BeginTabItem);
