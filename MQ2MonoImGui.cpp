@@ -417,7 +417,62 @@ void mono_ImGUI_PopID()
 	ImGui::PopID();
 }
 
+void mono_ImGUI_SetNextWindowFocus()
+{
+	ImGui::SetNextWindowFocus();
+}
+
+void mono_ImGUI_SetNextWindowPos(float x, float y,int flags, float xpiv, float ypiv)
+{
+	ImGui::SetNextWindowPos(ImVec2(x,y), flags, ImVec2(xpiv, ypiv));
+}
+
+float mono_ImGUI_GetWindowPosX()
+{
+	return ImGui::GetWindowPos().x;
+}
+float mono_ImGUI_GetWindowPosY()
+{
+	return ImGui::GetWindowPos().y;
+}
+
+float mono_ImGUI_GetWindowSizeX()
+{
+	return ImGui::GetWindowSize().x;
+}
+float mono_ImGUI_GetWindowSizeY()
+{
+	return ImGui::GetWindowSize().y;
+}
+
+
+float mono_ImGUI_GetWindowContentRegionMin_X()
+{
+	return ImGui::GetWindowContentRegionMin().x;
+}
+float mono_ImGUI_GetWindowContentRegionMin_Y()
+{
+	return ImGui::GetWindowContentRegionMin().y;
+}
+float mono_ImGUI_GetWindowContentRegionMax_X()
+{
+	return ImGui::GetWindowContentRegionMax().x;
+}
+float mono_ImGUI_GetWindowContentRegionMax_Y()
+{
+	return ImGui::GetWindowContentRegionMax().y;
+}
+
+
 bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags)
+{
+	char* cppString = mono_string_to_utf8(id);
+	std::string str(cppString);
+	mono_free(cppString);
+	ImVec2 size(width, height);
+	return ImGui::BeginChild(str.c_str(), size, (ImGuiChildFlags)child_flags, (ImGuiWindowFlags)window_flags);
+}
+bool mono_ImGUI_BeginChildResize(MonoString* id, float width, float height, int child_flags, int window_flags)
 {
 	char* cppString = mono_string_to_utf8(id);
 	std::string str(cppString);

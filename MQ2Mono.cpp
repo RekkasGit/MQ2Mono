@@ -180,7 +180,17 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Clear", &mono_ImGUI_InputText_Clear);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_CalcTextSizeX", &mono_ImGUI_CalcTextSizeX);
-	
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMinX", &mono_ImGUI_GetWindowContentRegionMin_X);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMinY", &mono_ImGUI_GetWindowContentRegionMin_Y);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMaxX", &mono_ImGUI_GetWindowContentRegionMax_X);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMaxY", &mono_ImGUI_GetWindowContentRegionMax_Y);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextWindowPos", &mono_ImGUI_SetNextWindowPos);
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowPosX", &mono_ImGUI_GetWindowPosX);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowPosY", &mono_ImGUI_GetWindowPosY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowSizeX", &mono_ImGUI_GetWindowSizeX);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowSizeY", &mono_ImGUI_GetWindowSizeY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextWindowFocus", &mono_ImGUI_SetNextWindowFocus);
 	//mono_ImGUI_InputTextClear
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputTextMultiline", &mono_ImGUI_InputTextMultiline);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Get", &mono_ImGUI_InputText_Get);

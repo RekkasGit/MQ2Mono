@@ -18,6 +18,16 @@ bool mono_ImGUI_Button(MonoString* name);
 bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height);
 bool mono_ImGUI_SmallButton(MonoString* name);
 void mono_ImGUI_End();
+float mono_ImGUI_GetWindowContentRegionMin_X();
+float mono_ImGUI_GetWindowContentRegionMin_Y();
+float mono_ImGUI_GetWindowContentRegionMax_X();
+float mono_ImGUI_GetWindowContentRegionMax_Y();
+void mono_ImGUI_SetNextWindowPos(float x, float y, int flags, float xpiv, float ypiv);
+float mono_ImGUI_GetWindowPosX();
+float mono_ImGUI_GetWindowPosY();
+float mono_ImGUI_GetWindowSizeX();
+float mono_ImGUI_GetWindowSizeY();
+void mono_ImGUI_SetNextWindowFocus();
 
 // Text helpers
 void mono_ImGUI_Text(MonoString* text);
