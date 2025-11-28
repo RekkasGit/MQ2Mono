@@ -44,7 +44,10 @@ PLUGIN_VERSION(0.35);
  bool InitAppDomain(std::string appDomainName);
  bool UnloadAppDomain(std::string appDomainName, bool updateCollections);
  void UnloadAllAppDomains();
-
+ void mono_ExecuteCommand(unsigned int commandID, bool holdKey);
+ void mono_ExecuteCommandByName(MonoString* name, bool holdKey);
+ void mono_DoCommandDelayed(MonoString* text);
+ void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z);
  //spell data methods
  int mono_GetSpellDataEffectCount(MonoString* query);
  MonoString* mono_GetSpellDataEffect(MonoString* query, int line);
@@ -149,6 +152,10 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
 	mono_add_internal_call("MonoCore.Core::mono_GetHoverWindowName", &mono_GetHoverWindowName);
 	mono_add_internal_call("MonoCore.Core::mq_GetMQ2MonoVersion", &mono_GetMQ2MonoVersion);
+
+	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommandByName", &mono_ExecuteCommandByName);
+	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommand", &mono_ExecuteCommand);
+	mono_add_internal_call("MonoCore.Core::mq_LookAt", &mono_LookAt);
 	
 	//ImGui stuff
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin", &mono_ImGUI_Begin);
@@ -1328,6 +1335,58 @@ static void mono_DoCommand(MonoString* text)
 	previousCommand = true;
 
 }
+
+static void mono_ExecuteCommandByName(MonoString* name, bool holdKey)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+
+	unsigned int commandID = FindMappableCommand(str.c_str());
+	if (commandID != -1)
+	{
+		mq::ExecuteCmd(commandID, holdKey);
+	}
+}
+
+static void mono_ExecuteCommand(unsigned int commandID, bool holdKey)
+{
+	mq::ExecuteCmd(commandID, holdKey);
+
+}
+
+static void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z)
+{
+	if (PCHARINFO pChar = GetCharInfo())
+	{
+		if (pChar->pSpawn)
+		{
+			float angle = (atan2(X - pChar->pSpawn->X, Y - pChar->pSpawn->Y) * 256.0f / (float)PI);
+			if (angle >= 512.0f)
+				angle -= 512.0f;
+			if (angle < 0.0f)
+				angle += 512.0f;
+			pControlledPlayer->Heading = (FLOAT)angle;
+			gFaceAngle = 10000.0f;
+			if (pChar->pSpawn->FeetWet) {
+				float locdist = GetDistance(pChar->pSpawn->X, pChar->pSpawn->Y, X, Y);
+				pChar->pSpawn->CameraAngle = (atan2(Z + 0.0f * 0.9f - pChar->pSpawn->Z - pChar->pSpawn->AvatarHeight * 0.9f, locdist) * 256.0f / (float)PI);
+			}
+			else if (pChar->pSpawn->mPlayerPhysicsClient.Levitate == 2) {
+				if (Z < pChar->pSpawn->Z - 5)
+					pChar->pSpawn->CameraAngle = -64.0f;
+				else if (Z > pChar->pSpawn->Z + 5)
+					pChar->pSpawn->CameraAngle = 64.0f;
+				else
+					pChar->pSpawn->CameraAngle = 0.0f;
+			}
+			else
+				pChar->pSpawn->CameraAngle = 0.0f;
+			gLookAngle = 10000.0f;
+		}
+	}
+}
+
 static void mono_DoCommandDelayed(MonoString* text)
 {
 	char* cppString = mono_string_to_utf8(text);
