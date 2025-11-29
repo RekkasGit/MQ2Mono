@@ -628,7 +628,7 @@ bool mono_ImGUI_InputText(MonoString* id, MonoString* currentValue)
 	auto& domainInfo = monoAppDomains[key];
 	
 	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
-	if (it == domainInfo.m_IMGUI_InputTextValues.end())
+	if (it != domainInfo.m_IMGUI_InputTextValues.end())
 	{
 		if (it->second != currentStr)
 		{
@@ -668,7 +668,7 @@ bool mono_ImGUI_InputTextMultiline(MonoString* id, MonoString* currentValue, flo
 	auto& domainInfo = monoAppDomains[key];
 
 	auto it = domainInfo.m_IMGUI_InputTextValues.find(idStr);
-	if (it == domainInfo.m_IMGUI_InputTextValues.end())
+	if (it != domainInfo.m_IMGUI_InputTextValues.end())
 	{
 		if (it->second != currentStr)
 		{
