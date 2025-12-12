@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.35);
+PLUGIN_VERSION(0.36);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -51,6 +51,7 @@ PLUGIN_VERSION(0.35);
  //spell data methods
  int mono_GetSpellDataEffectCount(MonoString* query);
  MonoString* mono_GetSpellDataEffect(MonoString* query, int line);
+ double mono_Memory_GetPageFileSize();
 
  //yes there are two of them, yes there is a reason due to compatabilty reasons of e3n
  void mono_GetSpawns();
@@ -65,13 +66,14 @@ PLUGIN_VERSION(0.35);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.35";
+ std::string version = "0.36";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
  /// we need to keep track of.
  /// </summary>
 #include "MQ2MonoShared.h"
+#include <Psapi.h>
 
 std::map<std::string, monoAppDomainInfo> monoAppDomains;
 std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
@@ -156,7 +158,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommandByName", &mono_ExecuteCommandByName);
 	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommand", &mono_ExecuteCommand);
 	mono_add_internal_call("MonoCore.Core::mq_LookAt", &mono_LookAt);
-	
+	mono_add_internal_call("MonoCore.Core::mq_Memory_GetPageFileSize", &mono_Memory_GetPageFileSize);
+
 	//ImGui stuff
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Button", &mono_ImGUI_Button);
@@ -1317,6 +1320,30 @@ static void mono_Delay(int milliseconds)
 	}
 	//WriteChatf("Mono_Delay called with %d", m_delayTime);
 	//WriteChatf("Mono_Delay delaytimer %ld", m_delayTimer);
+}
+static double mono_Memory_GetPageFileSize()
+{
+	double returnValue = 0;
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	// Get a handle to the current process
+	HANDLE hProcess = GetCurrentProcess();
+
+	if (hProcess == NULL) {
+		returnValue = -1;
+		return returnValue;
+	}
+	// Call GetProcessMemoryInfo to get memory details
+	if (GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+		// PagefileUsage is the current committed memory (in bytes)
+		SIZE_T commitSize = pmc.PagefileUsage;
+		returnValue = (double)commitSize / (1024 * 1024);
+	}
+	else {
+		returnValue = -1;
+	}
+	// Close the process handle
+	CloseHandle(hProcess);
+	return returnValue;
 }
 static void mono_Echo(MonoString* string)
 {
