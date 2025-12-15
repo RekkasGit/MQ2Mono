@@ -161,6 +161,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_Memory_GetPageFileSize", &mono_Memory_GetPageFileSize);
 
 	//ImGui stuff
+
+
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Button", &mono_ImGUI_Button);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ButtonEx", &mono_ImGUI_ButtonEx);
@@ -299,10 +301,18 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_DrawSpellIconBySpellID", &mono_ImGUI_DrawSpellIconBySpellID);
 
     // Drawing functions for custom backgrounds
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextRowEx", &mono_ImGUI_TableNextRowEx);
+	
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetCursorPosX", &mono_ImGUI_GetCursorPosX);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetCursorPosX", &mono_ImGUI_SetCursorPosX);
+	
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetCursorPosY", &mono_ImGUI_GetCursorPosY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetCursorPosY", &mono_ImGUI_SetCursorPosY);
+
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetCursorScreenPosX", &mono_ImGUI_GetCursorScreenPosX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetCursorScreenPosY", &mono_ImGUI_GetCursorScreenPosY);
-    mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetTextLineHeightWithSpacing", &mono_ImGUI_GetTextLineHeightWithSpacing);
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetTextLineHeightWithSpacing", &mono_ImGUI_GetTextLineHeightWithSpacing);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetFrameHeight", &mono_ImGUI_GetFrameHeight);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRectFilled", &mono_ImGUI_GetWindowDrawList_AddRectFilled);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddText", &mono_ImGUI_GetWindowDrawList_AddText);

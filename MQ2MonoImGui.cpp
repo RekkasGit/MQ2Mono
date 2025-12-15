@@ -13,6 +13,41 @@
 // All ImGui wrapper function definitions moved out of MQ2Mono.cpp
 // These rely on globals declared in MQ2MonoShared.h and defined in MQ2Mono.cpp
 
+
+void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height)
+{
+	ImGui::TableNextRow((ImGuiTableRowFlags)row_flags, min_row_height);
+}
+float mono_ImGUI_GetCursorPosX()
+{
+	return ImGui::GetCursorPosX();
+}
+
+void mono_ImGUI_SetCursorPosX(float x)
+{
+	ImGui::SetCursorPosX(x);
+}
+
+float mono_ImGUI_GetCursorPosY()
+{
+	return ImGui::GetCursorPosY();
+}
+
+void mono_ImGUI_SetCursorPosY(float y)
+{
+	ImGui::SetCursorPosY(y);
+}
+
+float mono_ImGUI_GetCursorScreenPosX()
+{
+	return ImGui::GetCursorScreenPos().x;
+}
+
+float mono_ImGUI_GetCursorScreenPosY()
+{
+	return ImGui::GetCursorScreenPos().y;
+}
+
 void mono_ImGUI_Begin_OpenFlagSet(MonoString* name, bool open)
 {
 	char* cppString = mono_string_to_utf8(name);
@@ -946,21 +981,9 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size)
 	mono_ImGUI_DrawSpellIconByIconIndex(iconIndex, size);
 }
 
-// Drawing functions for custom backgrounds
-float mono_ImGUI_GetCursorPosY()
-{
-	return ImGui::GetCursorPosY();
-}
 
-float mono_ImGUI_GetCursorScreenPosX()
-{
-	return ImGui::GetCursorScreenPos().x;
-}
 
-float mono_ImGUI_GetCursorScreenPosY()
-{
-	return ImGui::GetCursorScreenPos().y;
-}
+
 
 float mono_ImGUI_GetTextLineHeightWithSpacing()
 {

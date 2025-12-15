@@ -28,7 +28,13 @@ float mono_ImGUI_GetWindowPosY();
 float mono_ImGUI_GetWindowSizeX();
 float mono_ImGUI_GetWindowSizeY();
 void mono_ImGUI_SetNextWindowFocus();
-
+void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height);
+float mono_ImGUI_GetCursorPosX();
+void mono_ImGUI_SetCursorPosX(float x);
+float mono_ImGUI_GetCursorPosY();
+void mono_ImGUI_SetCursorPosY(float y);
+float mono_ImGUI_GetCursorScreenPosX();
+float mono_ImGUI_GetCursorScreenPosY();
 // Text helpers
 void mono_ImGUI_Text(MonoString* text);
 void mono_ImGUI_TextUnformatted(MonoString* text);
