@@ -305,10 +305,6 @@ void mono_ImGUI_TableNextRow()
 {
 	ImGui::TableNextRow();
 }
-void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height)
-{
-	ImGui::TableNextRow((ImGuiTableRowFlags)row_flags, min_row_height);
-}
 bool mono_ImGUI_TableNextColumn()
 {
 	return ImGui::TableNextColumn();
@@ -984,29 +980,6 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size)
 	int iconIndex = pSpell->SpellIcon;
 	mono_ImGUI_DrawSpellIconByIconIndex(iconIndex, size);
 }
-
-// Drawing functions for custom backgrounds
-float mono_ImGUI_GetCursorPosX()
-{
-	return ImGui::GetCursorPosX();
-}
-
-void mono_ImGUI_SetCursorPosX(float x)
-{
-	ImGui::SetCursorPosX(x);
-}
-
-float mono_ImGUI_GetCursorPosY()
-{
-	return ImGui::GetCursorPosY();
-}
-
-void mono_ImGUI_SetCursorPosY(float y)
-{
-	ImGui::SetCursorPosY(y);
-}
-
-
 
 
 float mono_ImGUI_GetTextLineHeightWithSpacing()
