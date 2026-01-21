@@ -297,6 +297,14 @@ void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width)
 	ImGui::TableSetupColumn(strLabel.c_str(), (ImGuiTableColumnFlags)flags, init_width);
 	mono_free(slabel);
 }
+void mono_ImGUI_TableSetupColumn_Default(MonoString* label)
+{
+	if (!label) return;
+	char* slabel = mono_string_to_utf8(label);
+	std::string strLabel(slabel);
+	ImGui::TableSetupColumn(strLabel.c_str());
+	mono_free(slabel);
+}
 void mono_ImGUI_TableHeadersRow()
 {
 	ImGui::TableHeadersRow();
