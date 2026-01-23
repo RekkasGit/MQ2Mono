@@ -86,6 +86,8 @@ void mono_ImGUI_TableHeadersRow();
 void mono_ImGUI_TableNextRow();
 bool mono_ImGUI_TableNextColumn();
 void mono_ImGUI_TableSetColumnIndex(int index);
+void mono_ImGUI_TableSetBgColor(int tablebgcolortarget, unsigned int color, int currentcolumn);
+
 void mono_ImGUI_PushID(int id);
 void mono_ImGUI_PopID();
 
@@ -146,7 +148,7 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size);
 
 // Fonts
 void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const uint16_t* ranges, int range_count, bool merge_mode);
-void mono_ImGUI_PushFont(void* font);
+bool mono_ImGUI_PushFont(MonoString* name);
 void mono_ImGUI_PopFont();
 
 // Convenience: push Material Design icons font if present

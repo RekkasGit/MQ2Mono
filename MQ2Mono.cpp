@@ -229,7 +229,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTable", &mono_ImGUI_EndTable);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupColumn", &mono_ImGUI_TableSetupColumn);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupColumn_Default", &mono_ImGUI_TableSetupColumn_Default);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetBgColor", &mono_ImGUI_TableSetBgColor);
 
+	
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetColumnIndex", &mono_ImGUI_TableSetColumnIndex);
 
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);

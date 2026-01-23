@@ -14,6 +14,7 @@
 // These rely on globals declared in MQ2MonoShared.h and defined in MQ2Mono.cpp
 
 
+
 void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height)
 {
 	ImGui::TableNextRow((ImGuiTableRowFlags)row_flags, min_row_height);
@@ -917,10 +918,29 @@ void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const u
 	return (void*)font;
 }
 
-void mono_ImGUI_PushFont(void* font)
+bool mono_ImGUI_PushFont(MonoString* name)
 {
-	if (!font) return;
-	ImGui::PushFont(reinterpret_cast<ImFont*>(font));
+	char* fontname = mono_string_to_utf8(name);
+	std::string nameSTR(fontname);
+	mono_free(fontname);
+	ImFont* selectedFont = nullptr;
+	ImGuiIO& io = ImGui::GetIO();
+	for (ImFont* font : io.Fonts->Fonts)
+	{
+		std::string fontName(font->GetDebugName());
+		if (fontName == nameSTR)
+		{
+			selectedFont = font;
+			break;
+		}
+	}
+
+	if (selectedFont)
+	{
+		ImGui::PushFont(selectedFont);
+		return true;
+	}
+	return false;
 }
 void mono_ImGUI_PopFont()
 {
@@ -1003,7 +1023,10 @@ float mono_ImGUI_GetFrameHeight()
     return ImGui::GetFrameHeight();
 }
 
-
+void mono_ImGUI_TableSetBgColor(int tablebgcolortarget, unsigned int color, int currentcolumn)
+{
+	ImGui::TableSetBgColor((ImGuiTableBgTarget)tablebgcolortarget, (ImU32) color, currentcolumn);
+}
 
 void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color)
 {
