@@ -80,6 +80,7 @@ std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
  //used to keep a revolving list of who is valid to process. 
  std::deque<std::string> appDomainProcessQueue;
  uint32_t bmUpdateMonoOnPulse = 0;
+ uint32_t bmUpdateMonoOnIMGUIPulse = 0;
 
 //to be replaced later with collections of multilpe domains, etc.
 //domains where the code is run
@@ -334,6 +335,7 @@ void InitMono()
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
+	bmUpdateMonoOnIMGUIPulse = AddMQ2Benchmark("UpdateMonoIMGUIOnPulse");
 	initialized = true;
 
 }
@@ -778,6 +780,7 @@ PLUGIN_API void ShutdownPlugin()
 		mono_jit_cleanup(mono_get_root_domain());
 	}
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
+	RemoveMQ2Benchmark(bmUpdateMonoOnIMGUIPulse);
 	RemoveCommand("/mono");
 	RemoveMQ2Data("MQ2Mono");
 	delete pMonoQuery;
@@ -1201,6 +1204,7 @@ PLUGIN_API void OnUpdateImGui()
 		//Call the main method in this code
 		if (i.second.m_appDomain && i.second.m_OnUpdateImGui)
 		{
+			MQScopedBenchmark bm1(bmUpdateMonoOnIMGUIPulse);
 			mono_domain_set(i.second.m_appDomain, false);
 			mono_runtime_invoke(i.second.m_OnUpdateImGui, i.second.m_classInstance, nullptr, nullptr);
 		}

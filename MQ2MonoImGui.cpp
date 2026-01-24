@@ -934,7 +934,6 @@ bool mono_ImGUI_PushFont(MonoString* name)
 			break;
 		}
 	}
-
 	if (selectedFont)
 	{
 		ImGui::PushFont(selectedFont);
