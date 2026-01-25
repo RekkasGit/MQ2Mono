@@ -538,6 +538,14 @@ bool mono_ImGUI_Selectable(MonoString* label, bool selected)
 	return ImGui::Selectable(str.c_str(), selected);
 }
 
+bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected,int flags)
+{
+	char* cppString = mono_string_to_utf8(label);
+	std::string str(cppString);
+	mono_free(cppString);
+	return ImGui::Selectable(str.c_str(), selected,(ImGuiSelectableFlags_)flags);
+}
+
 float mono_ImGUI_GetContentRegionAvailX()
 {
 	return ImGui::GetContentRegionAvail().x;

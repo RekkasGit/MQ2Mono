@@ -188,6 +188,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginChild", &mono_ImGUI_BeginChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndChild", &mono_ImGUI_EndChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable", &mono_ImGUI_Selectable);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable_WithFlags", &mono_ImGUI_Selectable_WithFlags);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);

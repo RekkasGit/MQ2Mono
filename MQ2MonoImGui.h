@@ -69,6 +69,7 @@ bool mono_ImGUI_Checkbox_Get(MonoString* id);
 bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags);
 void mono_ImGUI_EndChild();
 bool mono_ImGUI_Selectable(MonoString* label, bool selected);
+bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected, int flags);
 
 // Tabs
 bool mono_ImGUI_BeginTabBar(MonoString* name);
