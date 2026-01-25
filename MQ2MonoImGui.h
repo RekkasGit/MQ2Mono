@@ -69,6 +69,7 @@ bool mono_ImGUI_Checkbox_Get(MonoString* id);
 bool mono_ImGUI_BeginChild(MonoString* id, float width, float height, int child_flags, int window_flags);
 void mono_ImGUI_EndChild();
 bool mono_ImGUI_Selectable(MonoString* label, bool selected);
+bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected, int flags);
 
 // Tabs
 bool mono_ImGUI_BeginTabBar(MonoString* name);
@@ -81,11 +82,14 @@ bool mono_ImGUI_BeginTable(MonoString* id, int columns, int flags, float outer_w
 bool mono_ImGUI_BeginTableSimple(MonoString* id, int columns, int flags);
 void mono_ImGUI_EndTable();
 void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width);
+void mono_ImGUI_TableSetupColumn_Default(MonoString* label);
 void mono_ImGUI_TableHeadersRow();
 void mono_ImGUI_TableNextRow();
 void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height);
 bool mono_ImGUI_TableNextColumn();
 void mono_ImGUI_TableSetColumnIndex(int index);
+void mono_ImGUI_TableSetBgColor(int tablebgcolortarget, unsigned int color, int currentcolumn);
+
 void mono_ImGUI_PushID(int id);
 void mono_ImGUI_PopID();
 
@@ -146,7 +150,7 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size);
 
 // Fonts
 void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const uint16_t* ranges, int range_count, bool merge_mode);
-void mono_ImGUI_PushFont(void* font);
+bool mono_ImGUI_PushFont(MonoString* name);
 void mono_ImGUI_PopFont();
 
 // Convenience: push Material Design icons font if present

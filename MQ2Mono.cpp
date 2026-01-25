@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.36);
+PLUGIN_VERSION(0.37);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -66,7 +66,7 @@ PLUGIN_VERSION(0.36);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.36";
+ std::string version = "0.37";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -80,6 +80,7 @@ std::map<MonoDomain*, std::string> monoAppDomainPtrToString;
  //used to keep a revolving list of who is valid to process. 
  std::deque<std::string> appDomainProcessQueue;
  uint32_t bmUpdateMonoOnPulse = 0;
+ uint32_t bmUpdateMonoOnIMGUIPulse = 0;
 
 //to be replaced later with collections of multilpe domains, etc.
 //domains where the code is run
@@ -187,6 +188,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginChild", &mono_ImGUI_BeginChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndChild", &mono_ImGUI_EndChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable", &mono_ImGUI_Selectable);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable_WithFlags", &mono_ImGUI_Selectable_WithFlags);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailX", &mono_ImGUI_GetContentRegionAvailX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetContentRegionAvailY", &mono_ImGUI_GetContentRegionAvailY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
@@ -228,6 +230,10 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTableS", &mono_ImGUI_BeginTableSimple);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTable", &mono_ImGUI_EndTable);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupColumn", &mono_ImGUI_TableSetupColumn);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupColumn_Default", &mono_ImGUI_TableSetupColumn_Default);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetBgColor", &mono_ImGUI_TableSetBgColor);
+
+	
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetColumnIndex", &mono_ImGUI_TableSetColumnIndex);
 
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);
@@ -331,6 +337,7 @@ void InitMono()
 
 	
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
+	bmUpdateMonoOnIMGUIPulse = AddMQ2Benchmark("UpdateMonoIMGUIOnPulse");
 	initialized = true;
 
 }
@@ -775,6 +782,7 @@ PLUGIN_API void ShutdownPlugin()
 		mono_jit_cleanup(mono_get_root_domain());
 	}
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
+	RemoveMQ2Benchmark(bmUpdateMonoOnIMGUIPulse);
 	RemoveCommand("/mono");
 	RemoveMQ2Data("MQ2Mono");
 	delete pMonoQuery;
@@ -1198,6 +1206,7 @@ PLUGIN_API void OnUpdateImGui()
 		//Call the main method in this code
 		if (i.second.m_appDomain && i.second.m_OnUpdateImGui)
 		{
+			MQScopedBenchmark bm1(bmUpdateMonoOnIMGUIPulse);
 			mono_domain_set(i.second.m_appDomain, false);
 			mono_runtime_invoke(i.second.m_OnUpdateImGui, i.second.m_classInstance, nullptr, nullptr);
 		}
