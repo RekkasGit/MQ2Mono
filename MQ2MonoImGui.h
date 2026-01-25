@@ -84,6 +84,7 @@ void mono_ImGUI_EndTable();
 void mono_ImGUI_TableSetupColumn(MonoString* label, int flags, float init_width);
 void mono_ImGUI_TableSetupColumn_Default(MonoString* label);
 void mono_ImGUI_TableHeadersRow();
+void mono_ImGUI_TableHeader(MonoString* label);
 void mono_ImGUI_TableNextRow();
 bool mono_ImGUI_TableNextColumn();
 void mono_ImGUI_TableSetColumnIndex(int index);

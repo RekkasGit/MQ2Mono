@@ -303,12 +303,21 @@ void mono_ImGUI_TableSetupColumn_Default(MonoString* label)
 	if (!label) return;
 	char* slabel = mono_string_to_utf8(label);
 	std::string strLabel(slabel);
-	ImGui::TableSetupColumn(strLabel.c_str());
 	mono_free(slabel);
+	ImGui::TableSetupColumn(strLabel.c_str());
+	
 }
 void mono_ImGUI_TableHeadersRow()
 {
 	ImGui::TableHeadersRow();
+}
+void mono_ImGUI_TableHeader(MonoString* label)
+{
+	if (!label) return;
+	char* slabel = mono_string_to_utf8(label);
+	std::string strLabel(slabel);
+	mono_free(slabel);
+	ImGui::TableHeader(strLabel.c_str());
 }
 void mono_ImGUI_TableNextRow()
 {
