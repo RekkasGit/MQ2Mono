@@ -311,6 +311,13 @@ void mono_ImGUI_TableHeadersRow()
 {
 	ImGui::TableHeadersRow();
 }
+MonoString* mono_ImGUI_TableGetColumnName(int column)
+{
+	const char * value = ImGui::TableGetColumnName(column);
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return mono_string_new(mono_get_root_domain(), "");
+	return mono_string_new(currentDomain, value);
+}
 void mono_ImGUI_TableHeader(MonoString* label)
 {
 	if (!label) return;
