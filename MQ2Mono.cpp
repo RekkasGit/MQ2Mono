@@ -162,7 +162,14 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_Memory_GetPageFileSize", &mono_Memory_GetPageFileSize);
 
 	//ImGui stuff
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker4", &mono_ImGUI_ColorPicker4);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA", &mono_ImGUI_ColorPicker_GetRGBA);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker4_Float", &mono_ImGUI_ColorPicker4_Float);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA_Float", &mono_ImGUI_ColorPicker_GetRGBA_Float);
 
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_Clear", &mono_ImGUI_ColorPicker_Clear);
+	
 
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Button", &mono_ImGUI_Button);
@@ -237,6 +244,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetColumnIndex", &mono_ImGUI_TableSetColumnIndex);
 
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableHeadersRow", &mono_ImGUI_TableHeadersRow);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableHeader", &mono_ImGUI_TableHeader);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetColumnName", &mono_ImGUI_TableGetColumnName);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextRow", &mono_ImGUI_TableNextRow);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextRowEx", &mono_ImGUI_TableNextRowEx);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableNextColumn", &mono_ImGUI_TableNextColumn);
