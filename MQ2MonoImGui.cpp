@@ -307,6 +307,121 @@ void mono_ImGUI_TableSetupColumn_Default(MonoString* label)
 	ImGui::TableSetupColumn(strLabel.c_str());
 	
 }
+bool mono_ImGUI_ColorPicker4(MonoString* label, int r, int g, int b, int a, int flags)
+{
+
+	char* labelPtr = mono_string_to_utf8(label);
+	std::string labelStr(labelPtr);
+	mono_free(labelPtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+
+	auto it = domainInfo.m_IMGUI_InputColorValues.find(labelStr);
+	if (it == domainInfo.m_IMGUI_InputColorValues.end())
+	{
+		//didn't find it, insert it
+		domainInfo.m_IMGUI_InputColorValues[labelStr]={static_cast<float>(r)/255,static_cast<float>(g)/255,static_cast<float>(b)/255,static_cast<float>(a)/255 };
+	
+	}
+	
+	return ImGui::ColorPicker4(labelStr.c_str(), it->second.data(), (ImGuiColorEditFlags)flags);
+
+}
+bool mono_ImGUI_ColorPicker4_Float(MonoString* label, float r, float g, float b, float a, int flags)
+{
+
+	char* labelPtr = mono_string_to_utf8(label);
+	std::string labelStr(labelPtr);
+	mono_free(labelPtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (!currentDomain) return false;
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+
+	auto it = domainInfo.m_IMGUI_InputColorValues.find(labelStr);
+	if (it == domainInfo.m_IMGUI_InputColorValues.end())
+	{
+		//didn't find it, insert it
+		domainInfo.m_IMGUI_InputColorValues[labelStr] = { r,g,b,a };
+	}
+	return ImGui::ColorPicker4(labelStr.c_str(), it->second.data(), (ImGuiColorEditFlags)flags);
+
+}
+void mono_ImGUI_ColorPicker_Clear(MonoString* label)
+{
+	char* labelPtr = mono_string_to_utf8(label);
+	std::string labelStr(labelPtr);
+	mono_free(labelPtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+
+	if (!currentDomain) return;
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto it = domainInfo.m_IMGUI_InputColorValues.find(labelPtr);
+	if (it != domainInfo.m_IMGUI_InputColorValues.end())
+	{
+		domainInfo.m_IMGUI_InputColorValues.erase(it);
+	}
+}
+MonoArray* mono_ImGUI_ColorPicker_GetRGBA(MonoString* label)
+{
+	char* labelPtr = mono_string_to_utf8(label);
+	std::string labelStr(labelPtr);
+	mono_free(labelPtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+
+	MonoClass* intClass = mono_get_int32_class();
+	int arraySize = 4;
+
+	MonoArray* monoArray = mono_array_new(currentDomain, intClass, arraySize);
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+
+	auto it = domainInfo.m_IMGUI_InputColorValues.find(labelStr);
+	if (it != domainInfo.m_IMGUI_InputColorValues.end())
+	{
+		mono_array_set(monoArray, int, 0, static_cast<int>(it->second[0]*255));
+		mono_array_set(monoArray, int, 1, static_cast<int>(it->second[1]*255));
+		mono_array_set(monoArray, int, 2, static_cast<int>(it->second[2]*255));
+		mono_array_set(monoArray, int, 3, static_cast<int>(it->second[3]*255));
+	}
+	return monoArray;
+}
+MonoArray* mono_ImGUI_ColorPicker_GetRGBA_Float(MonoString* label)
+{
+	char* labelPtr = mono_string_to_utf8(label);
+	std::string labelStr(labelPtr);
+	mono_free(labelPtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+
+	MonoClass* floatClass = mono_get_single_class();
+	int arraySize = 4;
+
+	MonoArray* monoArray = mono_array_new(currentDomain, floatClass, arraySize);
+
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+
+	auto it = domainInfo.m_IMGUI_InputColorValues.find(labelStr);
+	if (it != domainInfo.m_IMGUI_InputColorValues.end())
+	{
+		mono_array_set(monoArray, float, 0, it->second[0]);
+		mono_array_set(monoArray, float, 1, it->second[1]);
+		mono_array_set(monoArray, float, 2, it->second[2]);
+		mono_array_set(monoArray, float, 3, it->second[3]);
+	}
+	return monoArray;
+}
 void mono_ImGUI_TableHeadersRow()
 {
 	ImGui::TableHeadersRow();

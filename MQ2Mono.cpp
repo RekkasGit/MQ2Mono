@@ -162,7 +162,14 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_Memory_GetPageFileSize", &mono_Memory_GetPageFileSize);
 
 	//ImGui stuff
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker4", &mono_ImGUI_ColorPicker4);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA", &mono_ImGUI_ColorPicker_GetRGBA);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker4_Float", &mono_ImGUI_ColorPicker4_Float);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA_Float", &mono_ImGUI_ColorPicker_GetRGBA_Float);
 
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_Clear", &mono_ImGUI_ColorPicker_Clear);
+	
 
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin", &mono_ImGUI_Begin);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Button", &mono_ImGUI_Button);

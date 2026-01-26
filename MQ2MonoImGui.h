@@ -91,6 +91,12 @@ bool mono_ImGUI_TableNextColumn();
 void mono_ImGUI_TableSetColumnIndex(int index);
 void mono_ImGUI_TableSetBgColor(int tablebgcolortarget, unsigned int color, int currentcolumn);
 
+//colortable
+void mono_ImGUI_ColorPicker_Clear(MonoString* label);
+bool mono_ImGUI_ColorPicker4(MonoString* label, int r, int g, int b, int a, int flags);
+bool mono_ImGUI_ColorPicker4_Float(MonoString* label, float r, float g, float b, float a, int flags);
+MonoArray* mono_ImGUI_ColorPicker_GetRGBA(MonoString* label);
+MonoArray* mono_ImGUI_ColorPicker_GetRGBA_Float(MonoString* label);
 void mono_ImGUI_PushID(int id);
 void mono_ImGUI_PopID();
 

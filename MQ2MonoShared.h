@@ -35,6 +35,7 @@ struct monoAppDomainInfo
 	std::map<std::string, bool> m_IMGUI_OpenWindows;
 	std::map<std::string, bool> m_IMGUI_CheckboxValues;
 	std::map<std::string, std::string> m_IMGUI_InputTextValues;
+	std::map<std::string, std::array<float, 4>> m_IMGUI_InputColorValues;
 	std::map<std::string, int> m_IMGUI_InputIntValues;
 	std::map<std::string, bool> m_IMGUI_RadioButtonValues;
 	std::string m_CurrentWindow;
