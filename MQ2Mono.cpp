@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.37);
+PLUGIN_VERSION(0.38);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -66,7 +66,7 @@ PLUGIN_VERSION(0.37);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.37";
+ std::string version = "0.38";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -201,11 +201,13 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText", &mono_ImGUI_InputText);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputText_Clear", &mono_ImGUI_InputText_Clear);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_CalcTextSizeX", &mono_ImGUI_CalcTextSizeX);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_CalcTextSize", &mono_ImGUI_CalcTextSize);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMinX", &mono_ImGUI_GetWindowContentRegionMin_X);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMinY", &mono_ImGUI_GetWindowContentRegionMin_Y);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMaxX", &mono_ImGUI_GetWindowContentRegionMax_X);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowContentRegionMaxY", &mono_ImGUI_GetWindowContentRegionMax_Y);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextWindowPos", &mono_ImGUI_SetNextWindowPos);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectSize", &mono_ImGUI_GetItemRectSize);
 
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowPosX", &mono_ImGUI_GetWindowPosX);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowPosY", &mono_ImGUI_GetWindowPosY);
@@ -231,6 +233,9 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginPopupContextWindow", &mono_ImGUI_BeginPopupContextWindow);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndPopup", &mono_ImGUI_EndPopup);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_MenuItem", &mono_ImGUI_MenuItem);
+
+	//Progress bar
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ProgressBar", &mono_ImGUI_ProgressBar);
 
     // Tables
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTable", &mono_ImGUI_BeginTable);
@@ -337,6 +342,8 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectMinY", &mono_ImGUI_GetItemRectMinY);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectMaxX", &mono_ImGUI_GetItemRectMaxX);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectMaxY", &mono_ImGUI_GetItemRectMaxY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetItemRectMin", &mono_ImGUI_GetItemRectMin);
+
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetColorU32", &mono_ImGUI_GetColorU32);
 
     // Texture creation from raw data

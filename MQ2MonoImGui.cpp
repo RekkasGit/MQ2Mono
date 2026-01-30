@@ -702,7 +702,25 @@ void mono_ImGUI_EndCombo()
 {
 	ImGui::EndCombo();
 }
+MonoArray* mono_ImGUI_CalcTextSize(MonoString* input)
+{
+	MonoClass* singleClass = mono_get_single_class();
+	int arraySize = 2;
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoArray* monoArray = mono_array_new(currentDomain, singleClass, arraySize);
 
+	if (input)
+	{
+		char* strptr = mono_string_to_utf8(input);
+		std::string inputStr(strptr);
+		mono_free(strptr);
+		ImVec2 textSize = ImGui::CalcTextSize(inputStr.c_str());
+		mono_array_set(monoArray, float, 0, textSize.x);
+		mono_array_set(monoArray, float, 1, textSize.y);
+
+	}
+	return monoArray;
+}
 float mono_ImGUI_CalcTextSizeX(MonoString* input)
 {
 	if (!input) return false;
@@ -930,6 +948,22 @@ bool mono_ImGUI_SliderDouble(MonoString* id, double* value, double minValue, dou
 	bool changed = ImGui::SliderScalar(idStr.c_str(), ImGuiDataType_Double, &v, &minValue, &maxValue, fmtStr.c_str());
 	if (changed) { *value = v; }
 	return changed;
+}
+
+
+bool mono_ImGUI_ProgressBar(float fraction,int height, int width, MonoString* overlay)
+{
+	if (overlay)
+	{
+		char* pOverlay = mono_string_to_utf8(overlay);
+		std::string overlayInfo(pOverlay);
+		mono_free(pOverlay);
+		ImGui::ProgressBar(fraction, ImVec2(width, height), overlayInfo.c_str());
+	}
+	else
+	{ 
+		ImGui::ProgressBar(fraction, ImVec2(width, height));
+	}
 }
 
 bool mono_ImGUI_BeginPopupContextItem(MonoString* id, int flags)
@@ -1187,6 +1221,33 @@ void mono_ImGUI_GetWindowDrawList_AddText(float x, float y, uint32_t color, Mono
 	}
 }
 
+MonoArray* mono_ImGUI_GetItemRectSize()
+{
+	ImVec2 itemSize = ImGui::GetItemRectSize();
+	MonoClass* singleClass = mono_get_single_class();
+	int arraySize = 2;
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoArray* monoArray = mono_array_new(currentDomain, singleClass, arraySize);
+
+	mono_array_set(monoArray, float, 0,itemSize.x);
+	mono_array_set(monoArray, float, 1, itemSize.y);
+
+	return monoArray;
+}
+
+MonoArray* mono_ImGUI_GetItemRectMin()
+{
+	ImVec2 itemSize = ImGui::GetItemRectMin();
+	MonoClass* singleClass = mono_get_single_class();
+	int arraySize = 2;
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoArray* monoArray = mono_array_new(currentDomain, singleClass, arraySize);
+
+	mono_array_set(monoArray, float, 0, itemSize.x);
+	mono_array_set(monoArray, float, 1, itemSize.y);
+
+	return monoArray;
+}
 float mono_ImGUI_GetItemRectMinX()
 {
     return ImGui::GetItemRectMin().x;

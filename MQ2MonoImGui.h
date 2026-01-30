@@ -43,6 +43,8 @@ void mono_ImGUI_PushTextWrapPos(float wrap_local_pos_x);
 void mono_ImGUI_PopTextWrapPos();
 void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
 float mono_ImGUI_CalcTextSizeX(MonoString* input);
+MonoArray* mono_ImGUI_CalcTextSize(MonoString* input);
+MonoArray* mono_ImGUI_GetItemRectSize();
 
 // Layout helpers
 void mono_ImGUI_Separator();
@@ -71,6 +73,8 @@ void mono_ImGUI_EndChild();
 bool mono_ImGUI_Selectable(MonoString* label, bool selected);
 bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected, int flags);
 
+// progress bar
+bool mono_ImGUI_ProgressBar(float fraction, int height, int width, MonoString* overlay);
 // Tabs
 bool mono_ImGUI_BeginTabBar(MonoString* name);
 void mono_ImGUI_EndTabBar();
@@ -177,6 +181,8 @@ float mono_ImGUI_GetItemRectMinX();
 float mono_ImGUI_GetItemRectMinY();
 float mono_ImGUI_GetItemRectMaxX();
 float mono_ImGUI_GetItemRectMaxY();
+
+MonoArray* mono_ImGUI_GetItemRectMin();
 uint32_t mono_ImGUI_GetColorU32(int imguiCol, float alpha_mul);
 
 // Texture creation from raw data (placeholders)
