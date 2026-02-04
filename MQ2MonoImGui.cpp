@@ -110,7 +110,13 @@ bool mono_ImGUI_Begin(MonoString* name, int flags)
 	}
 	return false;
 }
-
+bool mono_ImGUI_InvisibleButton(MonoString* name, float width, float height, int flags)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+	return ImGui::InvisibleButton(str.c_str(), ImVec2(width, height), flags);
+}
 bool mono_ImGUI_Button(MonoString* name)
 {
 	char* cppString = mono_string_to_utf8(name);
@@ -1230,7 +1236,7 @@ MonoArray* mono_ImGUI_GetItemRectSize()
 	MonoArray* monoArray = mono_array_new(currentDomain, singleClass, arraySize);
 
 	mono_array_set(monoArray, float, 0,itemSize.x);
-	mono_array_set(monoArray, float, 1, itemSize.y);
+	mono_array_set(monoArray, float, 1,itemSize.y);
 
 	return monoArray;
 }
