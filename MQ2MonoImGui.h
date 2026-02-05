@@ -16,6 +16,7 @@ boolean mono_ImGUI_Begin_OpenFlagGet(MonoString* name);
 bool mono_ImGUI_Begin(MonoString* name, int flags);
 bool mono_ImGUI_Button(MonoString* name);
 bool mono_ImGUI_ButtonEx(MonoString* name, float width, float height);
+bool mono_ImGUI_InvisibleButton(MonoString* name, float width, float height, int flags);
 bool mono_ImGUI_SmallButton(MonoString* name);
 void mono_ImGUI_End();
 float mono_ImGUI_GetWindowContentRegionMin_X();
