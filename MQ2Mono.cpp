@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.39);
+PLUGIN_VERSION(0.40);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -66,7 +66,7 @@ PLUGIN_VERSION(0.39);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.39";
+ std::string version = "0.40";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -193,6 +193,10 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndTabItem", &mono_ImGUI_EndTabItem);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushID", &mono_ImGUI_PushID);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PopID", &mono_ImGUI_PopID);
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushItemWidth", &mono_ImGUI_PushItemWidth);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PopItemWidth", &mono_ImGUI_PopItemWidth);
+
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginChild", &mono_ImGUI_BeginChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndChild", &mono_ImGUI_EndChild);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Selectable", &mono_ImGUI_Selectable);
