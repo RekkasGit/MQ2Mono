@@ -588,6 +588,16 @@ bool mono_ImGUI_IsMouseClicked(int button)
 	return ImGui::IsMouseClicked(button);
 }
 
+void mono_ImGUI_PushItemWidth(float width)
+{
+	ImGui::PushItemWidth(width);
+}
+
+void mono_ImGUI_PopItemWidth(float width)
+{
+	ImGui::PopItemWidth();
+}
+
 void mono_ImGUI_PushID(int id)
 {
 	ImGui::PushID(id);

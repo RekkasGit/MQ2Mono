@@ -105,6 +105,10 @@ MonoArray* mono_ImGUI_ColorPicker_GetRGBA_Float(MonoString* label);
 void mono_ImGUI_PushID(int id);
 void mono_ImGUI_PopID();
 
+void mono_ImGUI_PushItemWidth(float width);
+void mono_ImGUI_PopItemWidth(float width);
+
+
 // Style colors
 void mono_ImGUI_PushStyleColor(int which, float r, float g, float b, float a);
 void mono_ImGUI_PopStyleColor(int count);
