@@ -778,7 +778,9 @@ bool mono_ImGUI_InputText_Clear(MonoString* id)
 	if (it != domainInfo.m_IMGUI_InputTextValues.end())
 	{
 		domainInfo.m_IMGUI_InputTextValues.erase(it);
+		return true;
 	}
+	return false;
 }
 bool mono_ImGUI_InputInt_Clear(MonoString* id)
 {
@@ -793,7 +795,9 @@ bool mono_ImGUI_InputInt_Clear(MonoString* id)
 	if (it != domainInfo.m_IMGUI_InputIntValues.end())
 	{
 		domainInfo.m_IMGUI_InputIntValues.erase(it);
+		return true;
 	}
+	return false;
 }
 bool mono_ImGUI_InputInt(MonoString* id, int current,int steps, int fastSteps)
 {
@@ -967,7 +971,7 @@ bool mono_ImGUI_SliderDouble(MonoString* id, double* value, double minValue, dou
 }
 
 
-bool mono_ImGUI_ProgressBar(float fraction,int height, int width, MonoString* overlay)
+void mono_ImGUI_ProgressBar(float fraction,float height, float width, MonoString* overlay)
 {
 	if (overlay)
 	{
@@ -1145,7 +1149,7 @@ void mono_ImGUI_PushMaterialIconsFont()
 		for (int i = 0; i < io.Fonts->Fonts.Size; ++i)
 		{
 			ImFont* f = io.Fonts->Fonts[i];
-			if (f && f->FindGlyphNoFallback(kTestGlyph))
+			if (f && f->GetFontBaked(ImGui::GetFontSize())->FindGlyphNoFallback(kTestGlyph))
 			{
 				s_mdFont = f;
 				break;

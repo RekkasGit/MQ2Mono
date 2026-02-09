@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.40);
+PLUGIN_VERSION(0.41);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -66,7 +66,7 @@ PLUGIN_VERSION(0.40);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.40";
+ std::string version = "0.41";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -106,7 +106,7 @@ void InitMono()
 	if (initialized) return;
 	
 	//setup mono macro directory + runtime directory
-	rootDir = std::filesystem::path(gPathMQRoot).u8string();
+	rootDir = std::filesystem::path(gPathMQRoot).string();
 	monoDir = rootDir + "\\Mono";
 	
 	bool sgenExists = std::filesystem::exists(rootDir +"\\mono-2.0-sgen.dll");
@@ -1500,7 +1500,6 @@ static int mono_GetSpellDataEffectCount(MonoString* query)
 	strncpy_s(buffer, str.c_str(), sizeof(buffer));
 	mono_free(cppString);
 	eqlib::SPELL* pSpell = nullptr;
-	MonoString* returnValue;
 	IsNumber(buffer) ? pSpell = GetSpellByID(GetIntFromString(buffer, 0)) : pSpell = GetSpellByName(buffer);
 	if (!pSpell)
 	{

@@ -75,7 +75,7 @@ bool mono_ImGUI_Selectable(MonoString* label, bool selected);
 bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected, int flags);
 
 // progress bar
-bool mono_ImGUI_ProgressBar(float fraction, int height, int width, MonoString* overlay);
+void mono_ImGUI_ProgressBar(float fraction, float height, float width, MonoString* overlay);
 // Tabs
 bool mono_ImGUI_BeginTabBar(MonoString* name);
 void mono_ImGUI_EndTabBar();
