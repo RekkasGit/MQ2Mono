@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.41);
+PLUGIN_VERSION(0.411);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -66,7 +66,7 @@ PLUGIN_VERSION(0.41);
  MonoString* mono_GetHoverWindowName();
 
  MonoString* mono_GetMQ2MonoVersion();
- std::string version = "0.41";
+ std::string version = "0.411";
  
  /// <summary>
  /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -319,6 +319,10 @@ void InitMono()
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_AddFontFromFileTTF", &mono_ImGUI_AddFontFromFileTTF);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushFont", &mono_ImGUI_PushFont);
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_PopFont", &mono_ImGUI_PopFont);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushEQFont", &mono_ImGUI_PushEQFont);
+
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Style_GetFontSizeBase", &mono_ImGUI_Style_GetFontSizeBase);
+
     mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushMaterialIconsFont", &mono_ImGUI_PushMaterialIconsFont);
 
     // Spell icon drawing

@@ -166,8 +166,10 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size);
 
 // Fonts
 void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const uint16_t* ranges, int range_count, bool merge_mode);
-bool mono_ImGUI_PushFont(MonoString* name);
+bool mono_ImGUI_PushFont(MonoString* name,float font_size);
 void mono_ImGUI_PopFont();
+bool mono_ImGUI_PushEQFont(int fontID, float size);
+float mono_ImGUI_Style_GetFontSizeBase();
 
 // Convenience: push Material Design icons font if present
 void mono_ImGUI_PushMaterialIconsFont();

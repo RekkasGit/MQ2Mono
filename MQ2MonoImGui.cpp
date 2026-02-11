@@ -1,19 +1,16 @@
 #include "MQ2MonoImGui.h"
 #include "MQ2MonoShared.h"
-
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <mq/imgui/Widgets.h>
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include <string>
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <mq/imgui/Widgets.h>
 
 // All ImGui wrapper function definitions moved out of MQ2Mono.cpp
 // These rely on globals declared in MQ2MonoShared.h and defined in MQ2Mono.cpp
-
-
 
 void mono_ImGUI_TableNextRowEx(int row_flags, float min_row_height)
 {
@@ -1111,13 +1108,29 @@ void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const u
 	return (void*)font;
 }
 
-bool mono_ImGUI_PushFont(MonoString* name)
+float mono_ImGUI_Style_GetFontSizeBase()
+{
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	return style.FontSizeBase;
+}
+
+bool mono_ImGUI_PushFont(MonoString* name, float font_size)
 {
 	char* fontname = mono_string_to_utf8(name);
 	std::string nameSTR(fontname);
 	mono_free(fontname);
+	
+	
+	if (nameSTR.length()==0 && font_size >0)
+	{
+		//empty string, just pass null
+		ImGui::PushFont(NULL, font_size);
+		return true;
+	}
 	ImFont* selectedFont = nullptr;
 	ImGuiIO& io = ImGui::GetIO();
+	
 	for (ImFont* font : io.Fonts->Fonts)
 	{
 		std::string fontName(font->GetDebugName());
@@ -1134,6 +1147,28 @@ bool mono_ImGUI_PushFont(MonoString* name)
 	}
 	return false;
 }
+
+bool mono_ImGUI_PushEQFont(int fontID, float size)
+{
+	/*ImFont* font = mq::ImGuiManager_GetEQImFont(fontID);
+	
+		
+	if (font == NULL)
+	{
+		return false;
+	}
+	if (size ==0)
+	{
+		ImGui::PushFont(font);
+
+	}
+	else
+	{ 
+		ImGui::PushFont(font, size);
+	}*/
+	return false;
+}
+
 void mono_ImGUI_PopFont()
 {
 	ImGui::PopFont();
