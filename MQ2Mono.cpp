@@ -54,9 +54,11 @@ void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z);
 int mono_GetSpellDataEffectCount(MonoString* query);
 MonoString* mono_GetSpellDataEffect(MonoString* query, int line);
 double mono_Memory_GetPageFileSize();
+//getting some buffers to just read directly.
 unsigned char* mono_GetBuffData(int* bufferLength);
 unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength);
 unsigned char* mono_GetPetBuffData(int* bufferLength);
+unsigned char* mono_GetXtargetInfo(int* bufferLength);
 //yes there are three of them, yes there is a reason due to compatabilty reasons of e3n
 void mono_GetSpawns();
 void mono_GetSpawns2();
@@ -164,6 +166,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetPetBuffData", &mono_GetPetBuffData);
 	mono_add_internal_call("MonoCore.Core::mq_GetTargetBuffData", &mono_GetTargetBuffData);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3_Delta", &mono_GetSpawns3_Delta);
+	mono_add_internal_call("MonoCore.Core::mq_GetXtargetInfo", &mono_GetXtargetInfo);
 
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
@@ -1616,6 +1619,100 @@ static MonoString* mono_GetHoverWindowName()
 	return mono_string_new_wrapper("NULL");
 }
 
+static unsigned char _xtargetInfo[16384];
+static unsigned char* mono_GetXtargetInfo(int* bufferLength)
+{
+	unsigned char* pBuffer = _xtargetInfo;
+	int bufferSize = 0;
+
+	int index = 0;
+	for (const ExtendedTargetSlot& slot : *pLocalPC->pExtendedTargetList)
+	{
+			//targetype
+			//id
+			//PctAggro
+			//PctHps
+
+			//if you want the string, but the ENUM is better to use anyway.XTargetTypes
+			/*std::string targettypeStr;
+			if (const char* ptr = pLocalPC->pExtendedTargetList->ExtendedTargetRoleName(slot.xTargetType))
+			{
+				targettypeStr=ptr;
+			}*/
+			int ID = slot.SpawnID;
+
+			if (slot.XTargetSlotStatus == eXTSlotEmpty || ID <1)
+			{
+				//empty info, just padd it
+				//no valid spawn id, just retrn empty
+				int targettype = slot.xTargetType;
+				memcpy(pBuffer, &targettype, sizeof(targettype));
+				pBuffer += sizeof(targettype);
+				bufferSize += sizeof(targettype);
+				//copy in the ID we already have
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+				int aggroPct = 0;
+				memcpy(pBuffer, &aggroPct, sizeof(aggroPct));
+				pBuffer += sizeof(aggroPct);
+				bufferSize += sizeof(aggroPct);
+				int pctHPs = 0;
+				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
+				pBuffer += sizeof(pctHPs);
+				bufferSize += sizeof(pctHPs);
+
+			}
+			else
+			{
+
+				//get said spell for some data we need
+				//blast the id into the buffer and move pointer forward
+
+				int targettype = slot.xTargetType;
+
+				memcpy(pBuffer, &targettype, sizeof(targettype));
+				pBuffer += sizeof(targettype);
+				bufferSize += sizeof(targettype);
+
+				//copy in the ID we already have
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+
+				int aggroPct = 0;
+				uint32_t aggroIndex = AD_xTarget1 + index;
+				if (aggroIndex < MAX_AGGRO_METER_SIZE)
+				{
+					aggroPct=pAggroInfo->aggroData[aggroIndex].AggroPct;
+				}
+				memcpy(pBuffer, &aggroPct, sizeof(aggroPct));
+				pBuffer += sizeof(aggroPct);
+				bufferSize += sizeof(aggroPct);
+
+				int pctHPs = 0;
+				SPAWNINFO* pSpawn = GetSpawnByID(slot.SpawnID);
+				if (pSpawn)
+				{
+					pctHPs = pSpawn->HPMax == 0 ? 0 : pSpawn->HPCurrent * 100 / pSpawn->HPMax;
+					
+				}
+				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
+				pBuffer += sizeof(pctHPs);
+				bufferSize += sizeof(pctHPs);
+
+			}
+			index++;
+		
+
+		
+	}
+
+	*bufferLength = bufferSize;
+	return _xtargetInfo;
+
+}
+
 //not thread safe
 static unsigned char _buffTargetDataBuffer[16384];
 static unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength)
@@ -2127,8 +2224,10 @@ static unsigned char* mono_GetSpawns3_Delta(int* bufferLength)
 				_spawns3DeltaBufferSize = bufferSize;
 				spawn = spawn->GetNext();
 			}
+			_spawns3DeltaBufferSize = bufferSize;
 		}
 	}
+	
 	*bufferLength = _spawns3DeltaBufferSize;
 	return _spawns3DeltaBuffer;
 }
