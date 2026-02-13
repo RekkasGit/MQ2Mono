@@ -30,6 +30,7 @@ struct monoAppDomainInfo
 	MonoMethod* m_OnStop = nullptr;
 	MonoMethod* m_OnCommand = nullptr;
 	MonoMethod* m_OnSetSpawns = nullptr;
+	MonoMethod* m_OnSetSpawnsViaCallback = nullptr;
 	MonoMethod* m_OnQuery = nullptr;
 
 	std::map<std::string, bool> m_IMGUI_OpenWindows;
