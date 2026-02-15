@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.413);
+PLUGIN_VERSION(0.414);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -74,7 +74,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.413";
+std::string version = "0.414";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -1722,7 +1722,7 @@ static unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength)
 	//ID,Duration,SpellType,CasterNameLength,CasterName
 	unsigned char* pBuffer = _buffTargetDataBuffer;
 	int bufferSize = 0;
-	if (gTargetbuffs)
+	//if (gTargetbuffs)
 	{
 		SPAWNINFO* pSpawn = nullptr;
 		pSpawn = GetSpawnByID(spawnID);
@@ -1734,6 +1734,10 @@ static unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength)
 			int foundbuffs = 0;
 			if (buffTotals > 0)
 			{
+				memcpy(pBuffer, &gTargetbuffs, sizeof(gTargetbuffs));
+				pBuffer += sizeof(gTargetbuffs);
+				bufferSize += sizeof(gTargetbuffs);
+
 				for (int i = 0; i < MAX_TOTAL_BUFFS_NPC && foundbuffs < buffTotals; i++) {
 
 					auto buff = GetCachedBuffAtSlot(pSpawn, i);
@@ -1786,10 +1790,74 @@ static unsigned char* mono_GetPetBuffData(int* bufferLength)
 {
 	unsigned char* pBuffer = _buffPetDataBuffer;
 	int bufferSize = 0;
+	int spawnBufferSize = 0;
+	if (pPetInfoWnd && GetCharInfo() && GetCharInfo()->pSpawn && GetCharInfo()->pSpawn->PetID > 0) 
+	{
+		SPAWNINFO* pSpawn = nullptr;
+		pSpawn = GetSpawnByID(GetCharInfo()->pSpawn->PetID);
+	
+		if (pSpawn)
+		{
+			int buffTotals = GetCachedBuffCount(pSpawn);
+			int foundbuffs = 0;
+			if (buffTotals > 0)
+			{
+				for (int i = 0; i < MAX_TOTAL_BUFFS_NPC && foundbuffs < buffTotals; i++) 
+				{
+					auto buff = GetCachedBuffAtSlot(pSpawn, i);
+					if (buff && buff->spellId > 0)
+					{
+						int ID = buff->spellId;
+						//get said spell for some data we need
+						//blast the id into the buffer and move pointer forward
+						memcpy(pBuffer, &ID, sizeof(ID));
+						pBuffer += sizeof(ID);
+						bufferSize += sizeof(ID);
+						//repat for each type
 
-	if (pPetInfoWnd && GetCharInfo() && GetCharInfo()->pSpawn && GetCharInfo()->pSpawn->PetID > 0) {
-		for (int i = 0; i < MAX_TOTAL_BUFFS_NPC; i++) {
+						int duration = buff->duration;
+						memcpy(pBuffer, &duration, sizeof(duration));
+						pBuffer += sizeof(duration);
+						bufferSize += sizeof(duration);
+						EQ_Spell* spell = GetSpellByID(ID);
+						int spelltype = 0;
+						if (spell)
+						{
+							spelltype = spell->SpellType;
+						}
+						memcpy(pBuffer, &spelltype, sizeof(spelltype));
+						pBuffer += sizeof(spelltype);
+						bufferSize += sizeof(spelltype);
+						foundbuffs++;
+					}
+					else
+					{
+						//pad it as an empty slot
+						int ID = 0;
+						memcpy(pBuffer, &ID, sizeof(ID));
+						pBuffer += sizeof(ID);
+						bufferSize += sizeof(ID);
+						//repat for each type
+						int duration =0;
+						memcpy(pBuffer, &duration, sizeof(duration));
+						pBuffer += sizeof(duration);
+						bufferSize += sizeof(duration);
+						int spelltype = 0;
+						memcpy(pBuffer, &spelltype, sizeof(spelltype));
+						pBuffer += sizeof(spelltype);
+						bufferSize += sizeof(spelltype);
+					}
+				}
+			}
+		}
+		spawnBufferSize = bufferSize; //need to save to see which total size we will return
+		bufferSize = 0;
+		pBuffer = _buffPetDataBuffer; //set buffer back to the start of the aray as we are going to overwrite
+		//using 30 , this is the limit of the pet window on RoF2, and not sure what it is on live? at worst, the spawn buff info should fill out the rest
+		for (int i = 0; i < 30; i++) {
+		
 			if (EQ_Spell* spell = GetSpellByID(pPetInfoWnd->GetBuff(i)))
+			{
 				if (spell->ID > 0)
 				{
 					int ID = spell->ID;
@@ -1802,6 +1870,14 @@ static unsigned char* mono_GetPetBuffData(int* bufferLength)
 					//repat for each type
 
 					int duration = pPetInfoWnd->GetBuffTimer(i);
+					//change this to ticks to be the same as the span cache hits.
+					
+					if (duration > 0)
+					{
+						duration = duration / 1000;
+						duration = duration / 6;
+					}
+
 					memcpy(pBuffer, &duration, sizeof(duration));
 					pBuffer += sizeof(duration);
 					bufferSize += sizeof(duration);
@@ -1815,8 +1891,47 @@ static unsigned char* mono_GetPetBuffData(int* bufferLength)
 					bufferSize += sizeof(spelltype);
 
 				}
+				else
+				{
+					//pad it as an empty slot
+					int ID = 0;
+					memcpy(pBuffer, &ID, sizeof(ID));
+					pBuffer += sizeof(ID);
+					bufferSize += sizeof(ID);
+					//repat for each type
+					int duration = 0;
+					memcpy(pBuffer, &duration, sizeof(duration));
+					pBuffer += sizeof(duration);
+					bufferSize += sizeof(duration);
+					int spelltype = 0;
+					memcpy(pBuffer, &spelltype, sizeof(spelltype));
+					pBuffer += sizeof(spelltype);
+					bufferSize += sizeof(spelltype);
+				}
+			}
+			else
+			{
+				//pad it as an empty slot
+				int ID = 0;
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+				//repat for each type
+				int duration = 0;
+				memcpy(pBuffer, &duration, sizeof(duration));
+				pBuffer += sizeof(duration);
+				bufferSize += sizeof(duration);
+				int spelltype = 0;
+				memcpy(pBuffer, &spelltype, sizeof(spelltype));
+				pBuffer += sizeof(spelltype);
+				bufferSize += sizeof(spelltype);
+			}
+			
+				
 		}
 	}
+	
+	if (spawnBufferSize > bufferSize) bufferSize = spawnBufferSize;
 	*bufferLength = bufferSize;
 	return _buffPetDataBuffer;
 }
@@ -2109,10 +2224,10 @@ static unsigned char* mono_GetBuffData(int* bufferLength)
 
 //this can handle about 5,000 mob data, which should be more than enough
 static unsigned char _spawns3DeltaBuffer[300000]; //holds 5,000 spawns
-static int _spawns3DeltaBufferSize = 0;
 static unsigned char* mono_GetSpawns3_Delta(int* bufferLength)
 {
-	_spawns3DeltaBufferSize = 0;
+	int _spawns3DeltaBufferSize = 0;
+
 	MonoDomain* currentDomain = mono_domain_get();
 	//just going to blast all the npc deltas into a single array call
 	if (currentDomain)
