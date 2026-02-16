@@ -1150,23 +1150,22 @@ bool mono_ImGUI_PushFont(MonoString* name, float font_size)
 
 bool mono_ImGUI_PushEQFont(int fontID, float size)
 {
-	/*ImFont* font = mq::ImGuiManager_GetEQImFont(fontID);
-	
-		
+	ImFont* font =mq::imgui::GetEQImFont(fontID);
 	if (font == NULL)
 	{
 		return false;
 	}
 	if (size ==0)
 	{
-		ImGui::PushFont(font);
-
+		 ImGui::PushFont(font);
+		 return true;
 	}
 	else
 	{ 
 		ImGui::PushFont(font, size);
-	}*/
-	return false;
+		return true;
+	}
+
 }
 
 void mono_ImGUI_PopFont()
