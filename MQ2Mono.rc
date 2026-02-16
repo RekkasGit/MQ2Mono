@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,414
- PRODUCTVERSION 0,414
+ FILEVERSION 0,415
+ PRODUCTVERSION 0,415
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -73,11 +73,11 @@ BEGIN
 #else
             VALUE "FileDescription", "MQ2Mono Release Version"
 #endif
-            VALUE "FileVersion", "0.414"
+            VALUE "FileVersion", "0.415"
             VALUE "InternalName", "MQ2Mono.dll"
             VALUE "OriginalFilename", "MQ2Mono.dll"
             VALUE "ProductName", "MQ2Mono"
-            VALUE "ProductVersion", "0.414"
+            VALUE "ProductVersion", "0.415"
         END
     END
     BLOCK "VarFileInfo"

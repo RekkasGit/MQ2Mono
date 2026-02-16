@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.414);
+PLUGIN_VERSION(0.415);
 
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
@@ -50,6 +50,7 @@ void mono_ExecuteCommand(unsigned int commandID, bool holdKey);
 void mono_ExecuteCommandByName(MonoString* name, bool holdKey);
 void mono_DoCommandDelayed(MonoString* text);
 void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z);
+void ApplySpawnInfoToBuffer(PSPAWNINFO spawn, unsigned char* pBuffer, int& bufferSize);
 //spell data methods
 int mono_GetSpellDataEffectCount(MonoString* query);
 MonoString* mono_GetSpellDataEffect(MonoString* query, int line);
@@ -59,11 +60,12 @@ unsigned char* mono_GetBuffData(int* bufferLength);
 unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength);
 unsigned char* mono_GetPetBuffData(int* bufferLength);
 unsigned char* mono_GetXtargetInfo(int* bufferLength);
+unsigned char* mono_GetOnAddSpawnsBuffer(int* bufferLength);
 //yes there are three of them, yes there is a reason due to compatabilty reasons of e3n
 void mono_GetSpawns();
 void mono_GetSpawns2();
 void mono_GetSpawns3();
-unsigned char* mono_GetSpawns3_Buffer(int* bufferLength);
+unsigned char* mono_GetSpawns3Buffer(int* bufferLength);
 unsigned char* mono_GetSpawns3_Delta(int* bufferLength);
 //not sure if realy needed anymore but eh, its there
 bool mono_GetRunNextCommand();
@@ -74,7 +76,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.414";
+std::string version = "0.415";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -161,7 +163,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns2", &mono_GetSpawns2);
 
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3", &mono_GetSpawns3);
-	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3_Buffer", &mono_GetSpawns3_Buffer);
+	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3_Buffer", &mono_GetSpawns3Buffer);
+	mono_add_internal_call("MonoCore.Core::mq_GetOnAddSpawnsBuffer", &mono_GetOnAddSpawnsBuffer);
+
 	mono_add_internal_call("MonoCore.Core::mq_GetBuffData", &mono_GetBuffData);
 	mono_add_internal_call("MonoCore.Core::mq_GetPetBuffData", &mono_GetPetBuffData);
 	mono_add_internal_call("MonoCore.Core::mq_GetTargetBuffData", &mono_GetTargetBuffData);
@@ -480,6 +484,8 @@ bool InitAppDomain(std::string appDomainName)
 	MonoObject* classInstance;
 	//methods that we call in C# if they are available
 	MonoMethod* OnPulseMethod;
+	MonoMethod* OnAddSpawn;
+	MonoMethod* OnZoned;
 	MonoMethod* OnWriteChatColor;
 	MonoMethod* OnIncomingChat;
 	MonoMethod* OnInit;
@@ -549,6 +555,8 @@ bool InitAppDomain(std::string appDomainName)
 	OnSetSpawns = mono_class_get_method_from_name(classInfo, "OnSetSpawns", 2);
 	OnSetSpawnsViaCallback = mono_class_get_method_from_name(classInfo, "OnSetSpawnsViaCallback", 0);
 	OnQuery = mono_class_get_method_from_name(classInfo, "OnQuery", 1);
+	OnAddSpawn = mono_class_get_method_from_name(classInfo, "OnSpawnAdd", 0);
+	OnZoned = mono_class_get_method_from_name(classInfo, "OnZoned", 0);
 
 	//add it to the collection
 
@@ -560,6 +568,8 @@ bool InitAppDomain(std::string appDomainName)
 	domainInfo.m_classInfo = classInfo;
 	domainInfo.m_classInstance = classInstance;
 	domainInfo.m_OnPulseMethod = OnPulseMethod;
+	domainInfo.m_OnSpawnAdd = OnAddSpawn;
+	domainInfo.m_OnZoned = OnZoned;
 	domainInfo.m_OnWriteChatColor = OnWriteChatColor;
 	domainInfo.m_OnIncomingChat = OnIncomingChat;
 	domainInfo.m_OnInit = OnInit;
@@ -1025,6 +1035,20 @@ PLUGIN_API void OnPulse()
  */
 PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
 {
+	int gameState = GetGameState();
+	/*constexpr int GAMESTATE_PRECHARSELECT  = -1;
+	constexpr int GAMESTATE_CHARSELECT     = 1;
+	constexpr int GAMESTATE_CHARCREATE     = 2;
+	constexpr int GAMESTATE_POSTCHARSELECT = 3;
+	constexpr int GAMESTATE_SOMETHING      = 4;
+	constexpr int GAMESTATE_INGAME         = 5;
+	constexpr int GAMESTATE_LOGGINGIN      = 253;
+	constexpr int GAMESTATE_UNLOADING      = 255;*/
+	// If we have left the world and have apps running, unload them all
+	if (gameState != GAMESTATE_INGAME)
+	{
+		return;
+	}
 	if (!initialized) return;
 
 	if (monoAppDomains.size() == 0) return;
@@ -1085,6 +1109,20 @@ PLUGIN_API void OnWriteChatColor(const char* Line, int Color, int Filter)
  */
 PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
 {
+	int gameState = GetGameState();
+	/*constexpr int GAMESTATE_PRECHARSELECT  = -1;
+	constexpr int GAMESTATE_CHARSELECT     = 1;
+	constexpr int GAMESTATE_CHARCREATE     = 2;
+	constexpr int GAMESTATE_POSTCHARSELECT = 3;
+	constexpr int GAMESTATE_SOMETHING      = 4;
+	constexpr int GAMESTATE_INGAME         = 5;
+	constexpr int GAMESTATE_LOGGINGIN      = 253;
+	constexpr int GAMESTATE_UNLOADING      = 255;*/
+	// If we have left the world and have apps running, unload them all
+	if (gameState != GAMESTATE_INGAME)
+	{
+		return false;
+	}
 	if (!initialized) return false;
 	if (monoAppDomains.size() == 0) return false;
 
@@ -1139,10 +1177,93 @@ PLUGIN_API bool OnIncomingChat(const char* Line, DWORD Color)
  *
  * @param pNewSpawn PSPAWNINFO - The spawn that was added
  */
+
+
+
+static unsigned char _onAddSpawnsBuffer[4096];
+static int _onAddSpawnsBufferSize = 0;
+static unsigned char* mono_GetOnAddSpawnsBuffer(int* bufferLength)
+{
+	*bufferLength = _onAddSpawnsBufferSize;
+	return _onAddSpawnsBuffer;
+}
 PLUGIN_API void OnAddSpawn(PSPAWNINFO pNewSpawn)
 {
+	int gameState = GetGameState();
+	/*constexpr int GAMESTATE_PRECHARSELECT  = -1;
+	constexpr int GAMESTATE_CHARSELECT     = 1;
+	constexpr int GAMESTATE_CHARCREATE     = 2;
+	constexpr int GAMESTATE_POSTCHARSELECT = 3;
+	constexpr int GAMESTATE_SOMETHING      = 4;
+	constexpr int GAMESTATE_INGAME         = 5;
+	constexpr int GAMESTATE_LOGGINGIN      = 253;
+	constexpr int GAMESTATE_UNLOADING      = 255;*/
+	// If we have left the world and have apps running, unload them all
+	if (gameState != GAMESTATE_INGAME)
+	{
+		return;
+	}
 	// DebugSpewAlways("MQ2Mono::OnAddSpawn(%s)", pNewSpawn->Name);
 	_spawnCacheIsInvalid = true;
+	if (!_isZoning)
+	{
+		if (!pNewSpawn) return;
+		//apply the spawn data to the buffer
+		_onAddSpawnsBufferSize = 0;
+		ApplySpawnInfoToBuffer(pNewSpawn, _onAddSpawnsBuffer, _onAddSpawnsBufferSize);
+
+		int count = 0;
+		//need to pass this information to each C# app so they can copy the data over
+		size_t processQueueSize = appDomainProcessQueue.size();
+		while (count < processQueueSize)
+		{
+			std::string domainKey = appDomainProcessQueue.front();
+			appDomainProcessQueue.pop_front();
+			appDomainProcessQueue.push_back(domainKey);
+			count++;
+			//get pointer to struct
+			auto i = monoAppDomains.find(domainKey);
+			if (i != monoAppDomains.end())
+			{
+				if (i->second.m_appDomain && i->second.m_OnSpawnAdd)
+				{
+					mono_domain_set(i->second.m_appDomain, false);
+					mono_runtime_invoke(i->second.m_OnSpawnAdd, i->second.m_classInstance, nullptr, nullptr);
+				}
+			}
+			else
+			{
+				//should never be ever to get here, but if so.
+				//get rid of the bad domainKey
+				appDomainProcessQueue.pop_back();
+			}
+		}
+		////this is a spawn created after the zone is fully loaded, so a delta
+		//auto spawn = pSpawnManager->FirstSpawn;
+		////get a pointer to the buffer
+		//unsigned char* pBuffer = Spawns3_Buffer;
+
+		//char tempBuffer[MAX_STRING];
+		////assuming I cannot reuse this as there is no free once you call the invoke
+		////MonoArray* data = mono_array_new(currentDomain, mono_get_byte_class(), sizeof(Spawns3_Buffer));
+
+		//while (spawn != nullptr)
+		//{
+		//	//reset pointer
+		//	pBuffer = Spawns3_Buffer;
+		//	//reset size
+		//	bufferSize = 0;
+		//	ApplySpawnInfoToBuffer(spawn, pBuffer, bufferSize);
+		//	Spawns3_Buffer_Size = bufferSize;
+		//	mono_runtime_invoke(domainInfo.m_OnSetSpawnsViaCallback, domainInfo.m_classInstance, nullptr, nullptr);
+
+		//	spawn = spawn->GetNext();
+		//}
+
+
+	}
+
+
 }
 
 /**
@@ -1233,6 +1354,42 @@ PLUGIN_API void OnEndZone()
 PLUGIN_API void OnZoned()
 {
 	_isZoning = false;
+
+	//lets tell all the C# apps we have zoned. so they can bulk request spawn data
+	//looks like this will be called before the OnPulse, so should be safe to tell c# apps it happened, and they can do 
+	// full spawn refreshes as they wish before this ends and their pulse begins
+	int count = 0;
+	//need to pass this information to each C# app so they can copy the data over
+	size_t processQueueSize = appDomainProcessQueue.size();
+	while (count < processQueueSize)
+	{
+		std::string domainKey = appDomainProcessQueue.front();
+		appDomainProcessQueue.pop_front();
+		appDomainProcessQueue.push_back(domainKey);
+		count++;
+		//get pointer to struct
+		auto i = monoAppDomains.find(domainKey);
+		if (i != monoAppDomains.end())
+		{
+
+			if (i->second.m_appDomain && i->second.m_OnZoned)
+			{
+
+				mono_domain_set(i->second.m_appDomain, false);
+				mono_runtime_invoke(i->second.m_OnZoned, i->second.m_classInstance, nullptr, nullptr);
+			}
+		}
+		else
+		{
+			//should never be ever to get here, but if so.
+			//get rid of the bad domainKey
+			appDomainProcessQueue.pop_back();
+		}
+	}
+
+
+
+
 	// DebugSpewAlways("MQ2Mono::OnZoned()");
 }
 
@@ -2218,6 +2375,394 @@ static unsigned char* mono_GetBuffData(int* bufferLength)
 	return _buffDataBuffer;
 }
 
+
+static void ApplySpawnInfoToBuffer(PSPAWNINFO spawn,unsigned char* pBuffer, int& bufferSize)
+{
+	char tempBuffer[MAX_STRING];
+
+	//fill the buffer
+	int ID = spawn->SpawnID;
+	memcpy(pBuffer, &ID, sizeof(ID));
+	pBuffer += sizeof(ID);
+	bufferSize += sizeof(ID);
+
+	bool isAFK = (spawn->AFK != 0);
+	memcpy(pBuffer, &isAFK, sizeof(isAFK));
+	pBuffer += sizeof(isAFK);
+	bufferSize += sizeof(isAFK);
+
+	bool isAggressive = (spawn->PlayerState & 0x4 || spawn->PlayerState & 0x8);
+	memcpy(pBuffer, &isAggressive, sizeof(isAggressive));
+	pBuffer += sizeof(isAggressive);
+	bufferSize += sizeof(isAggressive);
+
+	bool isAnon = (spawn->Anon == 1);
+	memcpy(pBuffer, &isAnon, sizeof(isAnon));
+	pBuffer += sizeof(isAnon);
+	bufferSize += sizeof(isAnon);
+
+	int isBlind = spawn->Blind;
+	memcpy(pBuffer, &isBlind, sizeof(isBlind));
+	pBuffer += sizeof(isBlind);
+	bufferSize += sizeof(isBlind);
+
+	int BodyTypeID = GetBodyType(spawn);
+	memcpy(pBuffer, &BodyTypeID, sizeof(BodyTypeID));
+	pBuffer += sizeof(BodyTypeID);
+	bufferSize += sizeof(BodyTypeID);
+
+
+	const char* BodyDesc = GetBodyTypeDesc(BodyTypeID);
+	int BodyDescLength = static_cast<int>(strlen(BodyDesc));
+	//copy the size
+	memcpy(pBuffer, &BodyDescLength, sizeof(BodyDescLength));
+	pBuffer += sizeof(BodyDescLength);
+	bufferSize += sizeof(BodyDescLength);
+	//copy the data
+	memcpy(pBuffer, BodyDesc, BodyDescLength);
+	pBuffer += BodyDescLength;
+	bufferSize += BodyDescLength;
+
+	bool isBuyer = (spawn->Buyer != 0);
+	memcpy(pBuffer, &isBuyer, sizeof(isBuyer));
+	pBuffer += sizeof(isBuyer);
+	bufferSize += sizeof(isBuyer);
+
+	int ClassID = spawn->GetClass();
+	memcpy(pBuffer, &ClassID, sizeof(ClassID));
+	pBuffer += sizeof(ClassID);
+	bufferSize += sizeof(ClassID);
+
+	strcpy_s(tempBuffer, spawn->Name);
+	CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
+	std::string tCleanName(tempBuffer);
+	int tCleanNameLength = static_cast<int>(tCleanName.size());
+	//copy the size
+	memcpy(pBuffer, &tCleanNameLength, sizeof(tCleanNameLength));
+	pBuffer += sizeof(tCleanNameLength);
+	bufferSize += sizeof(tCleanNameLength);
+	//copy the data
+	memcpy(pBuffer, tCleanName.c_str(), tCleanNameLength);
+	pBuffer += tCleanNameLength;
+	bufferSize += tCleanNameLength;
+
+
+	int conColorID = ConColor(spawn);
+	memcpy(pBuffer, &conColorID, sizeof(conColorID));
+	pBuffer += sizeof(conColorID);
+	bufferSize += sizeof(conColorID);
+
+	int currentEndurance = spawn->GetCurrentEndurance();
+	memcpy(pBuffer, &currentEndurance, sizeof(currentEndurance));
+	pBuffer += sizeof(currentEndurance);
+	bufferSize += sizeof(currentEndurance);
+
+	int64_t currentHps = spawn->HPCurrent;
+	memcpy(pBuffer, &currentHps, sizeof(currentHps));
+	pBuffer += sizeof(currentHps);
+	bufferSize += sizeof(currentHps);
+
+	int currentMana = spawn->GetCurrentMana();
+	memcpy(pBuffer, &currentMana, sizeof(currentMana));
+	pBuffer += sizeof(currentMana);
+	bufferSize += sizeof(currentMana);
+
+	bool dead = (spawn->StandState == STANDSTATE_DEAD);
+	memcpy(pBuffer, &dead, sizeof(dead));
+	pBuffer += sizeof(dead);
+	bufferSize += sizeof(dead);
+
+	std::string displayName(spawn->DisplayedName);
+	int displayNameLength = static_cast<int>(displayName.length());
+	//copy the size
+	memcpy(pBuffer, &displayNameLength, sizeof(displayNameLength));
+	pBuffer += sizeof(displayNameLength);
+	bufferSize += sizeof(displayNameLength);
+	//copy the data
+	memcpy(pBuffer, displayName.c_str(), displayNameLength);
+	pBuffer += displayNameLength;
+	bufferSize += displayNameLength;
+
+	bool ducking = (spawn->StandState == STANDSTATE_DUCK);
+	memcpy(pBuffer, &ducking, sizeof(ducking));
+	pBuffer += sizeof(ducking);
+	bufferSize += sizeof(ducking);
+
+	bool feigning = (spawn->StandState == STANDSTATE_FEIGN);
+	memcpy(pBuffer, &feigning, sizeof(feigning));
+	pBuffer += sizeof(feigning);
+	bufferSize += sizeof(feigning);
+
+	int genderId = spawn->GetGender();
+	memcpy(pBuffer, &genderId, sizeof(genderId));
+	pBuffer += sizeof(genderId);
+	bufferSize += sizeof(genderId);
+
+	bool GM = (spawn->GM != 0);
+	memcpy(pBuffer, &GM, sizeof(GM));
+	pBuffer += sizeof(GM);
+	bufferSize += sizeof(GM);
+
+	int64_t guildID = spawn->GuildID;
+	memcpy(pBuffer, &guildID, sizeof(guildID));
+	pBuffer += sizeof(guildID);
+	bufferSize += sizeof(guildID);
+
+	float heading = spawn->Heading * 0.703125f;
+	memcpy(pBuffer, &heading, sizeof(heading));
+	pBuffer += sizeof(heading);
+	bufferSize += sizeof(heading);
+
+	float height = spawn->AvatarHeight;
+	memcpy(pBuffer, &height, sizeof(height));
+	pBuffer += sizeof(height);
+	bufferSize += sizeof(height);
+
+	bool Invs = (spawn->HideMode != 0);
+	memcpy(pBuffer, &Invs, sizeof(Invs));
+	pBuffer += sizeof(Invs);
+	bufferSize += sizeof(Invs);
+
+	bool isSummoned = spawn->bSummoned;
+	memcpy(pBuffer, &isSummoned, sizeof(isSummoned));
+	pBuffer += sizeof(isSummoned);
+	bufferSize += sizeof(isSummoned);
+
+	int level = spawn->Level;
+	memcpy(pBuffer, &level, sizeof(level));
+	pBuffer += sizeof(level);
+	bufferSize += sizeof(level);
+
+	//TODO:possible bug? default to false for now
+	// https://github.com/macroquest/macroquest/issues/632
+	//bool levitation = (spawn->mPlayerPhysicsClient.Levitate == 2);
+	bool levitation = false;
+	memcpy(pBuffer, &levitation, sizeof(levitation));
+	pBuffer += sizeof(levitation);
+	bufferSize += sizeof(levitation);
+
+	bool linkDead = spawn->Linkdead;
+	memcpy(pBuffer, &linkDead, sizeof(linkDead));
+	pBuffer += sizeof(linkDead);
+	bufferSize += sizeof(linkDead);
+
+	float look = spawn->CameraAngle;
+	memcpy(pBuffer, &look, sizeof(look));
+	pBuffer += sizeof(look);
+	bufferSize += sizeof(look);
+
+	int master = spawn->MasterID;
+	memcpy(pBuffer, &master, sizeof(master));
+	pBuffer += sizeof(master);
+	bufferSize += sizeof(master);
+
+	int maxEndurance = spawn->GetMaxEndurance();
+	memcpy(pBuffer, &maxEndurance, sizeof(maxEndurance));
+	pBuffer += sizeof(maxEndurance);
+	bufferSize += sizeof(maxEndurance);
+
+	auto spawnType = GetSpawnType(spawn);
+
+	float maxRange = 0.0;
+	if (spawnType != ITEM)
+	{
+		maxRange = get_melee_range(spawn, pControlledPlayer);
+	}
+	memcpy(pBuffer, &maxRange, sizeof(maxRange));
+	pBuffer += sizeof(maxRange);
+	bufferSize += sizeof(maxRange);
+
+	float maxRanageTo = 0.0;
+	if (spawnType != ITEM)
+	{
+		maxRanageTo = get_melee_range(pControlledPlayer, spawn);
+	}
+	memcpy(pBuffer, &maxRanageTo, sizeof(maxRanageTo));
+	pBuffer += sizeof(maxRanageTo);
+	bufferSize += sizeof(maxRanageTo);
+
+	bool mount = false;
+	if (spawn->Mount)
+	{
+		mount = true;
+	}
+	memcpy(pBuffer, &mount, sizeof(mount));
+	pBuffer += sizeof(mount);
+	bufferSize += sizeof(mount);
+
+	bool moving = (fabs(spawn->SpeedRun) > 0.0f);
+	memcpy(pBuffer, &moving, sizeof(moving));
+	pBuffer += sizeof(moving);
+	bufferSize += sizeof(moving);
+
+	std::string name(spawn->Name);
+	int tNameLength = static_cast<int>(name.size());
+	//copy the size
+	memcpy(pBuffer, &tNameLength, sizeof(tNameLength));
+	pBuffer += sizeof(tNameLength);
+	bufferSize += sizeof(tNameLength);
+	//copy the data
+	memcpy(pBuffer, name.c_str(), tNameLength);
+	pBuffer += tNameLength;
+	bufferSize += tNameLength;
+
+	bool isNamed = IsNamed(spawn);
+	memcpy(pBuffer, &isNamed, sizeof(isNamed));
+	pBuffer += sizeof(isNamed);
+	bufferSize += sizeof(isNamed);
+
+	int64_t pctHPs = spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax;
+	memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
+	pBuffer += sizeof(pctHPs);
+	bufferSize += sizeof(pctHPs);
+
+	int pctMana = 0;
+	if (int maxmana = spawn->GetMaxMana())
+	{
+		if (maxmana > 0)
+		{
+			pctMana = spawn->GetCurrentMana() * 100 / maxmana;
+		}
+	}
+	memcpy(pBuffer, &pctMana, sizeof(pctMana));
+	pBuffer += sizeof(pctMana);
+	bufferSize += sizeof(pctMana);
+
+	int petID = spawn->PetID;
+	memcpy(pBuffer, &petID, sizeof(petID));
+	pBuffer += sizeof(petID);
+	bufferSize += sizeof(petID);
+
+	int playerState = spawn->PlayerState;
+	memcpy(pBuffer, &playerState, sizeof(playerState));
+	pBuffer += sizeof(playerState);
+	bufferSize += sizeof(playerState);
+
+	int raceID = spawn->GetRace();
+	memcpy(pBuffer, &raceID, sizeof(raceID));
+	pBuffer += sizeof(raceID);
+	bufferSize += sizeof(raceID);
+
+	std::string raceName(spawn->GetRaceString());
+	int tRaceNameLength = static_cast<int>(raceName.size());
+	//copy the size
+	memcpy(pBuffer, &tRaceNameLength, sizeof(tRaceNameLength));
+	pBuffer += sizeof(tRaceNameLength);
+	bufferSize += sizeof(tRaceNameLength);
+	//copy the data
+	memcpy(pBuffer, raceName.c_str(), tRaceNameLength);
+	pBuffer += tRaceNameLength;
+	bufferSize += tRaceNameLength;
+
+	bool rolePlaying = (spawn->Anon == 2);
+	memcpy(pBuffer, &rolePlaying, sizeof(rolePlaying));
+	pBuffer += sizeof(rolePlaying);
+	bufferSize += sizeof(rolePlaying);
+
+	bool sitting = (spawn->StandState == STANDSTATE_SIT);
+	memcpy(pBuffer, &sitting, sizeof(sitting));
+	pBuffer += sizeof(sitting);
+	bufferSize += sizeof(sitting);
+
+	bool sneaking = (spawn->Sneak);
+	memcpy(pBuffer, &sneaking, sizeof(sneaking));
+	pBuffer += sizeof(sneaking);
+	bufferSize += sizeof(sneaking);
+
+	bool standing = (spawn->StandState == STANDSTATE_STAND);
+	memcpy(pBuffer, &standing, sizeof(standing));
+	pBuffer += sizeof(standing);
+	bufferSize += sizeof(standing);
+
+	bool stunned = false;
+	if (spawn->PlayerState & 0x20)
+	{
+		stunned = true;
+	}
+	memcpy(pBuffer, &stunned, sizeof(stunned));
+	pBuffer += sizeof(stunned);
+	bufferSize += sizeof(stunned);
+
+	std::string suffix(spawn->Suffix);
+	int tsuffixLength = static_cast<int>(suffix.size());
+	//copy the size
+	memcpy(pBuffer, &tsuffixLength, sizeof(tsuffixLength));
+	pBuffer += sizeof(tsuffixLength);
+	bufferSize += sizeof(tsuffixLength);
+	//copy the data
+	memcpy(pBuffer, suffix.c_str(), tsuffixLength);
+	pBuffer += tsuffixLength;
+	bufferSize += tsuffixLength;
+
+	bool targetable = spawn->Targetable;
+	memcpy(pBuffer, &targetable, sizeof(targetable));
+	pBuffer += sizeof(targetable);
+	bufferSize += sizeof(targetable);
+
+	int targetoftargetID = spawn->TargetOfTarget;
+	memcpy(pBuffer, &targetoftargetID, sizeof(targetoftargetID));
+	pBuffer += sizeof(targetoftargetID);
+	bufferSize += sizeof(targetoftargetID);
+
+	bool trader = (spawn->Trader != 0);
+	memcpy(pBuffer, &trader, sizeof(trader));
+	pBuffer += sizeof(trader);
+	bufferSize += sizeof(trader);
+
+	std::string typeDescription(GetTypeDesc(spawnType));
+	int ttypeDescriptionLength = static_cast<int>(typeDescription.size());
+	//copy the size
+	memcpy(pBuffer, &ttypeDescriptionLength, sizeof(ttypeDescriptionLength));
+	pBuffer += sizeof(ttypeDescriptionLength);
+	bufferSize += sizeof(ttypeDescriptionLength);
+	//copy the data
+	memcpy(pBuffer, typeDescription.c_str(), ttypeDescriptionLength);
+	pBuffer += ttypeDescriptionLength;
+	bufferSize += ttypeDescriptionLength;
+
+	bool underwater = (spawn->UnderWater == LiquidType_Water);
+	memcpy(pBuffer, &underwater, sizeof(underwater));
+	pBuffer += sizeof(underwater);
+	bufferSize += sizeof(underwater);
+
+	float x = spawn->X;
+	memcpy(pBuffer, &x, sizeof(x));
+	pBuffer += sizeof(x);
+	bufferSize += sizeof(x);
+
+	float y = spawn->Y;
+	memcpy(pBuffer, &y, sizeof(y));
+	pBuffer += sizeof(y);
+	bufferSize += sizeof(y);
+
+	float z = spawn->Z;
+	memcpy(pBuffer, &z, sizeof(z));
+	pBuffer += sizeof(z);
+	bufferSize += sizeof(z);
+
+	//so distance calculations can be done
+	float playerx = pControlledPlayer->X;
+	memcpy(pBuffer, &playerx, sizeof(playerx));
+	pBuffer += sizeof(playerx);
+	bufferSize += sizeof(playerx);
+
+	float playery = pControlledPlayer->Y;
+	memcpy(pBuffer, &playery, sizeof(playery));
+	pBuffer += sizeof(playery);
+	bufferSize += sizeof(playery);
+
+	float playerz = pControlledPlayer->Z;
+	memcpy(pBuffer, &playerz, sizeof(playerz));
+	pBuffer += sizeof(playerz);
+	bufferSize += sizeof(playerz);
+	//needed to tell NPC vs PC corpses
+	int deity = spawn->Deity;
+	memcpy(pBuffer, &deity, sizeof(deity));
+	pBuffer += sizeof(deity);
+	bufferSize += sizeof(deity);
+}
+
+
 //Why does V3 exist? honestly its the same as V2 just pulling instead of pushing
 //this is for memory optimizations
 //very much not thread safe, one caller at a time
@@ -2348,12 +2893,12 @@ static unsigned char* mono_GetSpawns3_Delta(int* bufferLength)
 }
 
 
-static unsigned char Spawns3_Buffer[4096];
-static int Spawns3_Buffer_Size = 0;
-static unsigned char* mono_GetSpawns3_Buffer(int* bufferLength)
+static unsigned char _spawns3Buffer[4096];
+static int _spawns3BufferSize = 0;
+static unsigned char* mono_GetSpawns3Buffer(int* bufferLength)
 {
-	*bufferLength = Spawns3_Buffer_Size;
-	return Spawns3_Buffer;
+	*bufferLength = _spawns3BufferSize;
+	return _spawns3Buffer;
 }
 static void mono_GetSpawns3()
 {
@@ -2380,7 +2925,7 @@ static void mono_GetSpawns3()
 
 			auto spawn = pSpawnManager->FirstSpawn;
 			//get a pointer to the buffer
-			unsigned char* pBuffer = Spawns3_Buffer;
+			unsigned char* pBuffer = _spawns3Buffer;
 
 			char tempBuffer[MAX_STRING];
 			//assuming I cannot reuse this as there is no free once you call the invoke
@@ -2389,394 +2934,11 @@ static void mono_GetSpawns3()
 			while (spawn != nullptr)
 			{
 				//reset pointer
-				pBuffer = Spawns3_Buffer;
+				pBuffer = _spawns3Buffer;
 				//reset size
 				bufferSize = 0;
-
-				//fill the buffer
-				int ID = spawn->SpawnID;
-				memcpy(pBuffer, &ID, sizeof(ID));
-				pBuffer += sizeof(ID);
-				bufferSize += sizeof(ID);
-
-				bool isAFK = (spawn->AFK != 0);
-				memcpy(pBuffer, &isAFK, sizeof(isAFK));
-				pBuffer += sizeof(isAFK);
-				bufferSize += sizeof(isAFK);
-
-				bool isAggressive = (spawn->PlayerState & 0x4 || spawn->PlayerState & 0x8);
-				memcpy(pBuffer, &isAggressive, sizeof(isAggressive));
-				pBuffer += sizeof(isAggressive);
-				bufferSize += sizeof(isAggressive);
-
-				bool isAnon = (spawn->Anon == 1);
-				memcpy(pBuffer, &isAnon, sizeof(isAnon));
-				pBuffer += sizeof(isAnon);
-				bufferSize += sizeof(isAnon);
-
-				int isBlind = spawn->Blind;
-				memcpy(pBuffer, &isBlind, sizeof(isBlind));
-				pBuffer += sizeof(isBlind);
-				bufferSize += sizeof(isBlind);
-
-				int BodyTypeID = GetBodyType(spawn);
-				memcpy(pBuffer, &BodyTypeID, sizeof(BodyTypeID));
-				pBuffer += sizeof(BodyTypeID);
-				bufferSize += sizeof(BodyTypeID);
-
-
-				const char* BodyDesc = GetBodyTypeDesc(BodyTypeID);
-				int BodyDescLength = static_cast<int>(strlen(BodyDesc));
-				//copy the size
-				memcpy(pBuffer, &BodyDescLength, sizeof(BodyDescLength));
-				pBuffer += sizeof(BodyDescLength);
-				bufferSize += sizeof(BodyDescLength);
-				//copy the data
-				memcpy(pBuffer, BodyDesc, BodyDescLength);
-				pBuffer += BodyDescLength;
-				bufferSize += BodyDescLength;
-
-				bool isBuyer = (spawn->Buyer != 0);
-				memcpy(pBuffer, &isBuyer, sizeof(isBuyer));
-				pBuffer += sizeof(isBuyer);
-				bufferSize += sizeof(isBuyer);
-
-				int ClassID = spawn->GetClass();
-				memcpy(pBuffer, &ClassID, sizeof(ClassID));
-				pBuffer += sizeof(ClassID);
-				bufferSize += sizeof(ClassID);
-
-				strcpy_s(tempBuffer, spawn->Name);
-				CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
-				std::string tCleanName(tempBuffer);
-				int tCleanNameLength = static_cast<int>(tCleanName.size());
-				//copy the size
-				memcpy(pBuffer, &tCleanNameLength, sizeof(tCleanNameLength));
-				pBuffer += sizeof(tCleanNameLength);
-				bufferSize += sizeof(tCleanNameLength);
-				//copy the data
-				memcpy(pBuffer, tCleanName.c_str(), tCleanNameLength);
-				pBuffer += tCleanNameLength;
-				bufferSize += tCleanNameLength;
-
-
-				int conColorID = ConColor(spawn);
-				memcpy(pBuffer, &conColorID, sizeof(conColorID));
-				pBuffer += sizeof(conColorID);
-				bufferSize += sizeof(conColorID);
-
-				int currentEndurance = spawn->GetCurrentEndurance();
-				memcpy(pBuffer, &currentEndurance, sizeof(currentEndurance));
-				pBuffer += sizeof(currentEndurance);
-				bufferSize += sizeof(currentEndurance);
-
-				int64_t currentHps = spawn->HPCurrent;
-				memcpy(pBuffer, &currentHps, sizeof(currentHps));
-				pBuffer += sizeof(currentHps);
-				bufferSize += sizeof(currentHps);
-
-				int currentMana = spawn->GetCurrentMana();
-				memcpy(pBuffer, &currentMana, sizeof(currentMana));
-				pBuffer += sizeof(currentMana);
-				bufferSize += sizeof(currentMana);
-
-				bool dead = (spawn->StandState == STANDSTATE_DEAD);
-				memcpy(pBuffer, &dead, sizeof(dead));
-				pBuffer += sizeof(dead);
-				bufferSize += sizeof(dead);
-
-				std::string displayName(spawn->DisplayedName);
-				int displayNameLength = static_cast<int>(displayName.length());
-				//copy the size
-				memcpy(pBuffer, &displayNameLength, sizeof(displayNameLength));
-				pBuffer += sizeof(displayNameLength);
-				bufferSize += sizeof(displayNameLength);
-				//copy the data
-				memcpy(pBuffer, displayName.c_str(), displayNameLength);
-				pBuffer += displayNameLength;
-				bufferSize += displayNameLength;
-
-				bool ducking = (spawn->StandState == STANDSTATE_DUCK);
-				memcpy(pBuffer, &ducking, sizeof(ducking));
-				pBuffer += sizeof(ducking);
-				bufferSize += sizeof(ducking);
-
-				bool feigning = (spawn->StandState == STANDSTATE_FEIGN);
-				memcpy(pBuffer, &feigning, sizeof(feigning));
-				pBuffer += sizeof(feigning);
-				bufferSize += sizeof(feigning);
-
-				int genderId = spawn->GetGender();
-				memcpy(pBuffer, &genderId, sizeof(genderId));
-				pBuffer += sizeof(genderId);
-				bufferSize += sizeof(genderId);
-
-				bool GM = (spawn->GM != 0);
-				memcpy(pBuffer, &GM, sizeof(GM));
-				pBuffer += sizeof(GM);
-				bufferSize += sizeof(GM);
-
-				int64_t guildID = spawn->GuildID;
-				memcpy(pBuffer, &guildID, sizeof(guildID));
-				pBuffer += sizeof(guildID);
-				bufferSize += sizeof(guildID);
-
-				float heading = spawn->Heading * 0.703125f;
-				memcpy(pBuffer, &heading, sizeof(heading));
-				pBuffer += sizeof(heading);
-				bufferSize += sizeof(heading);
-
-				float height = spawn->AvatarHeight;
-				memcpy(pBuffer, &height, sizeof(height));
-				pBuffer += sizeof(height);
-				bufferSize += sizeof(height);
-
-
-
-				bool Invs = (spawn->HideMode != 0);
-				memcpy(pBuffer, &Invs, sizeof(Invs));
-				pBuffer += sizeof(Invs);
-				bufferSize += sizeof(Invs);
-
-				bool isSummoned = spawn->bSummoned;
-				memcpy(pBuffer, &isSummoned, sizeof(isSummoned));
-				pBuffer += sizeof(isSummoned);
-				bufferSize += sizeof(isSummoned);
-
-				int level = spawn->Level;
-				memcpy(pBuffer, &level, sizeof(level));
-				pBuffer += sizeof(level);
-				bufferSize += sizeof(level);
-
-				//TODO:possible bug? default to false for now
-				// https://github.com/macroquest/macroquest/issues/632
-				//bool levitation = (spawn->mPlayerPhysicsClient.Levitate == 2);
-				bool levitation = false;
-				memcpy(pBuffer, &levitation, sizeof(levitation));
-				pBuffer += sizeof(levitation);
-				bufferSize += sizeof(levitation);
-
-				bool linkDead = spawn->Linkdead;
-				memcpy(pBuffer, &linkDead, sizeof(linkDead));
-				pBuffer += sizeof(linkDead);
-				bufferSize += sizeof(linkDead);
-
-				float look = spawn->CameraAngle;
-				memcpy(pBuffer, &look, sizeof(look));
-				pBuffer += sizeof(look);
-				bufferSize += sizeof(look);
-
-				int master = spawn->MasterID;
-				memcpy(pBuffer, &master, sizeof(master));
-				pBuffer += sizeof(master);
-				bufferSize += sizeof(master);
-
-				int maxEndurance = spawn->GetMaxEndurance();
-				memcpy(pBuffer, &maxEndurance, sizeof(maxEndurance));
-				pBuffer += sizeof(maxEndurance);
-				bufferSize += sizeof(maxEndurance);
-
-				auto spawnType = GetSpawnType(spawn);
-
-				float maxRange = 0.0;
-				if (spawnType != ITEM)
-				{
-					maxRange = get_melee_range(spawn, pControlledPlayer);
-				}
-				memcpy(pBuffer, &maxRange, sizeof(maxRange));
-				pBuffer += sizeof(maxRange);
-				bufferSize += sizeof(maxRange);
-
-				float maxRanageTo = 0.0;
-				if (spawnType != ITEM)
-				{
-					maxRanageTo = get_melee_range(pControlledPlayer, spawn);
-				}
-				memcpy(pBuffer, &maxRanageTo, sizeof(maxRanageTo));
-				pBuffer += sizeof(maxRanageTo);
-				bufferSize += sizeof(maxRanageTo);
-
-				bool mount = false;
-				if (spawn->Mount)
-				{
-					mount = true;
-				}
-				memcpy(pBuffer, &mount, sizeof(mount));
-				pBuffer += sizeof(mount);
-				bufferSize += sizeof(mount);
-
-				bool moving = (fabs(spawn->SpeedRun) > 0.0f);
-				memcpy(pBuffer, &moving, sizeof(moving));
-				pBuffer += sizeof(moving);
-				bufferSize += sizeof(moving);
-
-				std::string name(spawn->Name);
-				int tNameLength = static_cast<int>(name.size());
-				//copy the size
-				memcpy(pBuffer, &tNameLength, sizeof(tNameLength));
-				pBuffer += sizeof(tNameLength);
-				bufferSize += sizeof(tNameLength);
-				//copy the data
-				memcpy(pBuffer, name.c_str(), tNameLength);
-				pBuffer += tNameLength;
-				bufferSize += tNameLength;
-
-				bool isNamed = IsNamed(spawn);
-				memcpy(pBuffer, &isNamed, sizeof(isNamed));
-				pBuffer += sizeof(isNamed);
-				bufferSize += sizeof(isNamed);
-
-				int64_t pctHPs = spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax;
-				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
-				pBuffer += sizeof(pctHPs);
-				bufferSize += sizeof(pctHPs);
-
-				int pctMana = 0;
-				if (int maxmana = spawn->GetMaxMana())
-				{
-					if (maxmana > 0)
-					{
-						pctMana = spawn->GetCurrentMana() * 100 / maxmana;
-					}
-				}
-				memcpy(pBuffer, &pctMana, sizeof(pctMana));
-				pBuffer += sizeof(pctMana);
-				bufferSize += sizeof(pctMana);
-
-				int petID = spawn->PetID;
-				memcpy(pBuffer, &petID, sizeof(petID));
-				pBuffer += sizeof(petID);
-				bufferSize += sizeof(petID);
-
-				int playerState = spawn->PlayerState;
-				memcpy(pBuffer, &playerState, sizeof(playerState));
-				pBuffer += sizeof(playerState);
-				bufferSize += sizeof(playerState);
-
-				int raceID = spawn->GetRace();
-				memcpy(pBuffer, &raceID, sizeof(raceID));
-				pBuffer += sizeof(raceID);
-				bufferSize += sizeof(raceID);
-
-				std::string raceName(spawn->GetRaceString());
-				int tRaceNameLength = static_cast<int>(raceName.size());
-				//copy the size
-				memcpy(pBuffer, &tRaceNameLength, sizeof(tRaceNameLength));
-				pBuffer += sizeof(tRaceNameLength);
-				bufferSize += sizeof(tRaceNameLength);
-				//copy the data
-				memcpy(pBuffer, raceName.c_str(), tRaceNameLength);
-				pBuffer += tRaceNameLength;
-				bufferSize += tRaceNameLength;
-
-				bool rolePlaying = (spawn->Anon == 2);
-				memcpy(pBuffer, &rolePlaying, sizeof(rolePlaying));
-				pBuffer += sizeof(rolePlaying);
-				bufferSize += sizeof(rolePlaying);
-
-				bool sitting = (spawn->StandState == STANDSTATE_SIT);
-				memcpy(pBuffer, &sitting, sizeof(sitting));
-				pBuffer += sizeof(sitting);
-				bufferSize += sizeof(sitting);
-
-				bool sneaking = (spawn->Sneak);
-				memcpy(pBuffer, &sneaking, sizeof(sneaking));
-				pBuffer += sizeof(sneaking);
-				bufferSize += sizeof(sneaking);
-
-				bool standing = (spawn->StandState == STANDSTATE_STAND);
-				memcpy(pBuffer, &standing, sizeof(standing));
-				pBuffer += sizeof(standing);
-				bufferSize += sizeof(standing);
-
-				bool stunned = false;
-				if (spawn->PlayerState & 0x20)
-				{
-					stunned = true;
-				}
-				memcpy(pBuffer, &stunned, sizeof(stunned));
-				pBuffer += sizeof(stunned);
-				bufferSize += sizeof(stunned);
-
-				std::string suffix(spawn->Suffix);
-				int tsuffixLength = static_cast<int>(suffix.size());
-				//copy the size
-				memcpy(pBuffer, &tsuffixLength, sizeof(tsuffixLength));
-				pBuffer += sizeof(tsuffixLength);
-				bufferSize += sizeof(tsuffixLength);
-				//copy the data
-				memcpy(pBuffer, suffix.c_str(), tsuffixLength);
-				pBuffer += tsuffixLength;
-				bufferSize += tsuffixLength;
-
-				bool targetable = spawn->Targetable;
-				memcpy(pBuffer, &targetable, sizeof(targetable));
-				pBuffer += sizeof(targetable);
-				bufferSize += sizeof(targetable);
-
-				int targetoftargetID = spawn->TargetOfTarget;
-				memcpy(pBuffer, &targetoftargetID, sizeof(targetoftargetID));
-				pBuffer += sizeof(targetoftargetID);
-				bufferSize += sizeof(targetoftargetID);
-
-				bool trader = (spawn->Trader != 0);
-				memcpy(pBuffer, &trader, sizeof(trader));
-				pBuffer += sizeof(trader);
-				bufferSize += sizeof(trader);
-
-				std::string typeDescription(GetTypeDesc(spawnType));
-				int ttypeDescriptionLength = static_cast<int>(typeDescription.size());
-				//copy the size
-				memcpy(pBuffer, &ttypeDescriptionLength, sizeof(ttypeDescriptionLength));
-				pBuffer += sizeof(ttypeDescriptionLength);
-				bufferSize += sizeof(ttypeDescriptionLength);
-				//copy the data
-				memcpy(pBuffer, typeDescription.c_str(), ttypeDescriptionLength);
-				pBuffer += ttypeDescriptionLength;
-				bufferSize += ttypeDescriptionLength;
-
-				bool underwater = (spawn->UnderWater == LiquidType_Water);
-				memcpy(pBuffer, &underwater, sizeof(underwater));
-				pBuffer += sizeof(underwater);
-				bufferSize += sizeof(underwater);
-
-				float x = spawn->X;
-				memcpy(pBuffer, &x, sizeof(x));
-				pBuffer += sizeof(x);
-				bufferSize += sizeof(x);
-
-				float y = spawn->Y;
-				memcpy(pBuffer, &y, sizeof(y));
-				pBuffer += sizeof(y);
-				bufferSize += sizeof(y);
-
-				float z = spawn->Z;
-				memcpy(pBuffer, &z, sizeof(z));
-				pBuffer += sizeof(z);
-				bufferSize += sizeof(z);
-
-				//so distance calculations can be done
-				float playerx = pControlledPlayer->X;
-				memcpy(pBuffer, &playerx, sizeof(playerx));
-				pBuffer += sizeof(playerx);
-				bufferSize += sizeof(playerx);
-
-				float playery = pControlledPlayer->Y;
-				memcpy(pBuffer, &playery, sizeof(playery));
-				pBuffer += sizeof(playery);
-				bufferSize += sizeof(playery);
-
-				float playerz = pControlledPlayer->Z;
-				memcpy(pBuffer, &playerz, sizeof(playerz));
-				pBuffer += sizeof(playerz);
-				bufferSize += sizeof(playerz);
-				//needed to tell NPC vs PC corpses
-				int deity = spawn->Deity;
-				memcpy(pBuffer, &deity, sizeof(deity));
-				pBuffer += sizeof(deity);
-				bufferSize += sizeof(deity);
-
-				Spawns3_Buffer_Size = bufferSize;
+				ApplySpawnInfoToBuffer(spawn, pBuffer, bufferSize);
+				_spawns3BufferSize = bufferSize;
 				mono_runtime_invoke(domainInfo.m_OnSetSpawnsViaCallback, domainInfo.m_classInstance, nullptr, nullptr);
 
 				spawn = spawn->GetNext();
@@ -2832,388 +2994,7 @@ static void mono_GetSpawns2()
 				//reset size
 				bufferSize = 0;
 
-				//fill the buffer
-				int ID = spawn->SpawnID;
-				memcpy(pBuffer, &ID, sizeof(ID));
-				pBuffer += sizeof(ID);
-				bufferSize += sizeof(ID);
-
-				bool isAFK = (spawn->AFK != 0);
-				memcpy(pBuffer, &isAFK, sizeof(isAFK));
-				pBuffer += sizeof(isAFK);
-				bufferSize += sizeof(isAFK);
-
-				bool isAggressive = (spawn->PlayerState & 0x4 || spawn->PlayerState & 0x8);
-				memcpy(pBuffer, &isAggressive, sizeof(isAggressive));
-				pBuffer += sizeof(isAggressive);
-				bufferSize += sizeof(isAggressive);
-
-				bool isAnon = (spawn->Anon == 1);
-				memcpy(pBuffer, &isAnon, sizeof(isAnon));
-				pBuffer += sizeof(isAnon);
-				bufferSize += sizeof(isAnon);
-
-				int isBlind = spawn->Blind;
-				memcpy(pBuffer, &isBlind, sizeof(isBlind));
-				pBuffer += sizeof(isBlind);
-				bufferSize += sizeof(isBlind);
-
-				int BodyTypeID = GetBodyType(spawn);
-				memcpy(pBuffer, &BodyTypeID, sizeof(BodyTypeID));
-				pBuffer += sizeof(BodyTypeID);
-				bufferSize += sizeof(BodyTypeID);
-
-
-				const char* BodyDesc = GetBodyTypeDesc(BodyTypeID);
-				int BodyDescLength = static_cast<int>(strlen(BodyDesc));
-				//copy the size
-				memcpy(pBuffer, &BodyDescLength, sizeof(BodyDescLength));
-				pBuffer += sizeof(BodyDescLength);
-				bufferSize += sizeof(BodyDescLength);
-				//copy the data
-				memcpy(pBuffer, BodyDesc, BodyDescLength);
-				pBuffer += BodyDescLength;
-				bufferSize += BodyDescLength;
-
-				bool isBuyer = (spawn->Buyer != 0);
-				memcpy(pBuffer, &isBuyer, sizeof(isBuyer));
-				pBuffer += sizeof(isBuyer);
-				bufferSize += sizeof(isBuyer);
-
-				int ClassID = spawn->GetClass();
-				memcpy(pBuffer, &ClassID, sizeof(ClassID));
-				pBuffer += sizeof(ClassID);
-				bufferSize += sizeof(ClassID);
-
-				strcpy_s(tempBuffer, spawn->Name);
-				CleanupName(tempBuffer, sizeof(tempBuffer), false, false);
-				std::string tCleanName(tempBuffer);
-				int tCleanNameLength = static_cast<int>(tCleanName.size());
-				//copy the size
-				memcpy(pBuffer, &tCleanNameLength, sizeof(tCleanNameLength));
-				pBuffer += sizeof(tCleanNameLength);
-				bufferSize += sizeof(tCleanNameLength);
-				//copy the data
-				memcpy(pBuffer, tCleanName.c_str(), tCleanNameLength);
-				pBuffer += tCleanNameLength;
-				bufferSize += tCleanNameLength;
-
-
-				int conColorID = ConColor(spawn);
-				memcpy(pBuffer, &conColorID, sizeof(conColorID));
-				pBuffer += sizeof(conColorID);
-				bufferSize += sizeof(conColorID);
-
-				int currentEndurance = spawn->GetCurrentEndurance();
-				memcpy(pBuffer, &currentEndurance, sizeof(currentEndurance));
-				pBuffer += sizeof(currentEndurance);
-				bufferSize += sizeof(currentEndurance);
-
-				int64_t currentHps = spawn->HPCurrent;
-				memcpy(pBuffer, &currentHps, sizeof(currentHps));
-				pBuffer += sizeof(currentHps);
-				bufferSize += sizeof(currentHps);
-
-				int currentMana = spawn->GetCurrentMana();
-				memcpy(pBuffer, &currentMana, sizeof(currentMana));
-				pBuffer += sizeof(currentMana);
-				bufferSize += sizeof(currentMana);
-
-				bool dead = (spawn->StandState == STANDSTATE_DEAD);
-				memcpy(pBuffer, &dead, sizeof(dead));
-				pBuffer += sizeof(dead);
-				bufferSize += sizeof(dead);
-
-				std::string displayName(spawn->DisplayedName);
-				int displayNameLength = static_cast<int>(displayName.length());
-				//copy the size
-				memcpy(pBuffer, &displayNameLength, sizeof(displayNameLength));
-				pBuffer += sizeof(displayNameLength);
-				bufferSize += sizeof(displayNameLength);
-				//copy the data
-				memcpy(pBuffer, displayName.c_str(), displayNameLength);
-				pBuffer += displayNameLength;
-				bufferSize += displayNameLength;
-
-				bool ducking = (spawn->StandState == STANDSTATE_DUCK);
-				memcpy(pBuffer, &ducking, sizeof(ducking));
-				pBuffer += sizeof(ducking);
-				bufferSize += sizeof(ducking);
-
-				bool feigning = (spawn->StandState == STANDSTATE_FEIGN);
-				memcpy(pBuffer, &feigning, sizeof(feigning));
-				pBuffer += sizeof(feigning);
-				bufferSize += sizeof(feigning);
-
-				int genderId = spawn->GetGender();
-				memcpy(pBuffer, &genderId, sizeof(genderId));
-				pBuffer += sizeof(genderId);
-				bufferSize += sizeof(genderId);
-
-				bool GM = (spawn->GM != 0);
-				memcpy(pBuffer, &GM, sizeof(GM));
-				pBuffer += sizeof(GM);
-				bufferSize += sizeof(GM);
-
-				int64_t guildID = spawn->GuildID;
-				memcpy(pBuffer, &guildID, sizeof(guildID));
-				pBuffer += sizeof(guildID);
-				bufferSize += sizeof(guildID);
-
-				float heading = spawn->Heading * 0.703125f;
-				memcpy(pBuffer, &heading, sizeof(heading));
-				pBuffer += sizeof(heading);
-				bufferSize += sizeof(heading);
-
-				float height = spawn->AvatarHeight;
-				memcpy(pBuffer, &height, sizeof(height));
-				pBuffer += sizeof(height);
-				bufferSize += sizeof(height);
-
-
-
-				bool Invs = (spawn->HideMode != 0);
-				memcpy(pBuffer, &Invs, sizeof(Invs));
-				pBuffer += sizeof(Invs);
-				bufferSize += sizeof(Invs);
-
-				bool isSummoned = spawn->bSummoned;
-				memcpy(pBuffer, &isSummoned, sizeof(isSummoned));
-				pBuffer += sizeof(isSummoned);
-				bufferSize += sizeof(isSummoned);
-
-				int level = spawn->Level;
-				memcpy(pBuffer, &level, sizeof(level));
-				pBuffer += sizeof(level);
-				bufferSize += sizeof(level);
-
-				//TODO:possible bug? default to false for now
-				// https://github.com/macroquest/macroquest/issues/632
-				//bool levitation = (spawn->mPlayerPhysicsClient.Levitate == 2);
-				bool levitation = false;
-				memcpy(pBuffer, &levitation, sizeof(levitation));
-				pBuffer += sizeof(levitation);
-				bufferSize += sizeof(levitation);
-
-				bool linkDead = spawn->Linkdead;
-				memcpy(pBuffer, &linkDead, sizeof(linkDead));
-				pBuffer += sizeof(linkDead);
-				bufferSize += sizeof(linkDead);
-
-				float look = spawn->CameraAngle;
-				memcpy(pBuffer, &look, sizeof(look));
-				pBuffer += sizeof(look);
-				bufferSize += sizeof(look);
-
-				int master = spawn->MasterID;
-				memcpy(pBuffer, &master, sizeof(master));
-				pBuffer += sizeof(master);
-				bufferSize += sizeof(master);
-
-				int maxEndurance = spawn->GetMaxEndurance();
-				memcpy(pBuffer, &maxEndurance, sizeof(maxEndurance));
-				pBuffer += sizeof(maxEndurance);
-				bufferSize += sizeof(maxEndurance);
-
-				auto spawnType = GetSpawnType(spawn);
-
-				float maxRange = 0.0;
-				if (spawnType != ITEM)
-				{
-					maxRange = get_melee_range(spawn, pControlledPlayer);
-				}
-				memcpy(pBuffer, &maxRange, sizeof(maxRange));
-				pBuffer += sizeof(maxRange);
-				bufferSize += sizeof(maxRange);
-
-				float maxRanageTo = 0.0;
-				if (spawnType != ITEM)
-				{
-					maxRanageTo = get_melee_range(pControlledPlayer, spawn);
-				}
-				memcpy(pBuffer, &maxRanageTo, sizeof(maxRanageTo));
-				pBuffer += sizeof(maxRanageTo);
-				bufferSize += sizeof(maxRanageTo);
-
-				bool mount = false;
-				if (spawn->Mount)
-				{
-					mount = true;
-				}
-				memcpy(pBuffer, &mount, sizeof(mount));
-				pBuffer += sizeof(mount);
-				bufferSize += sizeof(mount);
-
-				bool moving = (fabs(spawn->SpeedRun) > 0.0f);
-				memcpy(pBuffer, &moving, sizeof(moving));
-				pBuffer += sizeof(moving);
-				bufferSize += sizeof(moving);
-
-				std::string name(spawn->Name);
-				int tNameLength = static_cast<int>(name.size());
-				//copy the size
-				memcpy(pBuffer, &tNameLength, sizeof(tNameLength));
-				pBuffer += sizeof(tNameLength);
-				bufferSize += sizeof(tNameLength);
-				//copy the data
-				memcpy(pBuffer, name.c_str(), tNameLength);
-				pBuffer += tNameLength;
-				bufferSize += tNameLength;
-
-				bool isNamed = IsNamed(spawn);
-				memcpy(pBuffer, &isNamed, sizeof(isNamed));
-				pBuffer += sizeof(isNamed);
-				bufferSize += sizeof(isNamed);
-
-				int64_t pctHPs = spawn->HPMax == 0 ? 0 : spawn->HPCurrent * 100 / spawn->HPMax;
-				memcpy(pBuffer, &pctHPs, sizeof(pctHPs));
-				pBuffer += sizeof(pctHPs);
-				bufferSize += sizeof(pctHPs);
-
-				int pctMana = 0;
-				if (int maxmana = spawn->GetMaxMana())
-				{
-					if (maxmana > 0)
-					{
-						pctMana = spawn->GetCurrentMana() * 100 / maxmana;
-					}
-				}
-				memcpy(pBuffer, &pctMana, sizeof(pctMana));
-				pBuffer += sizeof(pctMana);
-				bufferSize += sizeof(pctMana);
-
-				int petID = spawn->PetID;
-				memcpy(pBuffer, &petID, sizeof(petID));
-				pBuffer += sizeof(petID);
-				bufferSize += sizeof(petID);
-
-				int playerState = spawn->PlayerState;
-				memcpy(pBuffer, &playerState, sizeof(playerState));
-				pBuffer += sizeof(playerState);
-				bufferSize += sizeof(playerState);
-
-				int raceID = spawn->GetRace();
-				memcpy(pBuffer, &raceID, sizeof(raceID));
-				pBuffer += sizeof(raceID);
-				bufferSize += sizeof(raceID);
-
-				std::string raceName(spawn->GetRaceString());
-				int tRaceNameLength = static_cast<int>(raceName.size());
-				//copy the size
-				memcpy(pBuffer, &tRaceNameLength, sizeof(tRaceNameLength));
-				pBuffer += sizeof(tRaceNameLength);
-				bufferSize += sizeof(tRaceNameLength);
-				//copy the data
-				memcpy(pBuffer, raceName.c_str(), tRaceNameLength);
-				pBuffer += tRaceNameLength;
-				bufferSize += tRaceNameLength;
-
-				bool rolePlaying = (spawn->Anon == 2);
-				memcpy(pBuffer, &rolePlaying, sizeof(rolePlaying));
-				pBuffer += sizeof(rolePlaying);
-				bufferSize += sizeof(rolePlaying);
-
-				bool sitting = (spawn->StandState == STANDSTATE_SIT);
-				memcpy(pBuffer, &sitting, sizeof(sitting));
-				pBuffer += sizeof(sitting);
-				bufferSize += sizeof(sitting);
-
-				bool sneaking = (spawn->Sneak);
-				memcpy(pBuffer, &sneaking, sizeof(sneaking));
-				pBuffer += sizeof(sneaking);
-				bufferSize += sizeof(sneaking);
-
-				bool standing = (spawn->StandState == STANDSTATE_STAND);
-				memcpy(pBuffer, &standing, sizeof(standing));
-				pBuffer += sizeof(standing);
-				bufferSize += sizeof(standing);
-
-				bool stunned = false;
-				if (spawn->PlayerState & 0x20)
-				{
-					stunned = true;
-				}
-				memcpy(pBuffer, &stunned, sizeof(stunned));
-				pBuffer += sizeof(stunned);
-				bufferSize += sizeof(stunned);
-
-				std::string suffix(spawn->Suffix);
-				int tsuffixLength = static_cast<int>(suffix.size());
-				//copy the size
-				memcpy(pBuffer, &tsuffixLength, sizeof(tsuffixLength));
-				pBuffer += sizeof(tsuffixLength);
-				bufferSize += sizeof(tsuffixLength);
-				//copy the data
-				memcpy(pBuffer, suffix.c_str(), tsuffixLength);
-				pBuffer += tsuffixLength;
-				bufferSize += tsuffixLength;
-
-				bool targetable = spawn->Targetable;
-				memcpy(pBuffer, &targetable, sizeof(targetable));
-				pBuffer += sizeof(targetable);
-				bufferSize += sizeof(targetable);
-
-				int targetoftargetID = spawn->TargetOfTarget;
-				memcpy(pBuffer, &targetoftargetID, sizeof(targetoftargetID));
-				pBuffer += sizeof(targetoftargetID);
-				bufferSize += sizeof(targetoftargetID);
-
-				bool trader = (spawn->Trader != 0);
-				memcpy(pBuffer, &trader, sizeof(trader));
-				pBuffer += sizeof(trader);
-				bufferSize += sizeof(trader);
-
-				std::string typeDescription(GetTypeDesc(spawnType));
-				int ttypeDescriptionLength = static_cast<int>(typeDescription.size());
-				//copy the size
-				memcpy(pBuffer, &ttypeDescriptionLength, sizeof(ttypeDescriptionLength));
-				pBuffer += sizeof(ttypeDescriptionLength);
-				bufferSize += sizeof(ttypeDescriptionLength);
-				//copy the data
-				memcpy(pBuffer, typeDescription.c_str(), ttypeDescriptionLength);
-				pBuffer += ttypeDescriptionLength;
-				bufferSize += ttypeDescriptionLength;
-
-				bool underwater = (spawn->UnderWater == LiquidType_Water);
-				memcpy(pBuffer, &underwater, sizeof(underwater));
-				pBuffer += sizeof(underwater);
-				bufferSize += sizeof(underwater);
-
-				float x = spawn->X;
-				memcpy(pBuffer, &x, sizeof(x));
-				pBuffer += sizeof(x);
-				bufferSize += sizeof(x);
-
-				float y = spawn->Y;
-				memcpy(pBuffer, &y, sizeof(y));
-				pBuffer += sizeof(y);
-				bufferSize += sizeof(y);
-
-				float z = spawn->Z;
-				memcpy(pBuffer, &z, sizeof(z));
-				pBuffer += sizeof(z);
-				bufferSize += sizeof(z);
-
-				//so distance calculations can be done
-				float playerx = pControlledPlayer->X;
-				memcpy(pBuffer, &playerx, sizeof(playerx));
-				pBuffer += sizeof(playerx);
-				bufferSize += sizeof(playerx);
-
-				float playery = pControlledPlayer->Y;
-				memcpy(pBuffer, &playery, sizeof(playery));
-				pBuffer += sizeof(playery);
-				bufferSize += sizeof(playery);
-
-				float playerz = pControlledPlayer->Z;
-				memcpy(pBuffer, &playerz, sizeof(playerz));
-				pBuffer += sizeof(playerz);
-				bufferSize += sizeof(playerz);
-				//needed to tell NPC vs PC corpses
-				int deity = spawn->Deity;
-				memcpy(pBuffer, &deity, sizeof(deity));
-				pBuffer += sizeof(deity);
-				bufferSize += sizeof(deity);
+				ApplySpawnInfoToBuffer(spawn, pBuffer, bufferSize);
 
 
 				//copy over the array
