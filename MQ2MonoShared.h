@@ -23,6 +23,8 @@ struct monoAppDomainInfo
 	MonoObject* m_classInstance = nullptr;
 	// methods that we call in C# if they are available
 	MonoMethod* m_OnPulseMethod = nullptr;
+	MonoMethod* m_OnSpawnAdd = nullptr;
+	MonoMethod* m_OnZoned = nullptr;
 	MonoMethod* m_OnWriteChatColor = nullptr;
 	MonoMethod* m_OnIncomingChat = nullptr;
 	MonoMethod* m_OnInit = nullptr;
@@ -30,6 +32,7 @@ struct monoAppDomainInfo
 	MonoMethod* m_OnStop = nullptr;
 	MonoMethod* m_OnCommand = nullptr;
 	MonoMethod* m_OnSetSpawns = nullptr;
+	MonoMethod* m_OnSetSpawnsViaCallback = nullptr;
 	MonoMethod* m_OnQuery = nullptr;
 
 	std::map<std::string, bool> m_IMGUI_OpenWindows;
