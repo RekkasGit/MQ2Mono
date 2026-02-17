@@ -181,6 +181,8 @@ float mono_ImGUI_GetCursorScreenPosY();
 float mono_ImGUI_GetTextLineHeightWithSpacing();
 float mono_ImGUI_GetFrameHeight();
 void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color);
+void mono_ImGUI_GetWindowDrawList_AddRect(float p_min_x, float p_min_y, float p_max_x, float p_max_y, unsigned int color, float rounding, int rounding_corners_flags, float thickness);
+
 void mono_ImGUI_GetWindowDrawList_AddText(float x, float y, uint32_t color, MonoString* text);
 
 // Item rect bounds and color helpers
