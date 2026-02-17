@@ -2796,6 +2796,7 @@ static unsigned char* mono_GetSpawns3_Delta(int* bufferLength)
 				if (spawn_counter >= 5000)
 				{
 					//reached our max of 5000 spawns kick out
+					bufferSize = 0;
 					break;
 				}
 				//fill the buffer
