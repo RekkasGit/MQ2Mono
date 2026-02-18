@@ -399,6 +399,22 @@ MonoArray* mono_ImGUI_ColorPicker_GetRGBA(MonoString* label)
 	}
 	return monoArray;
 }
+
+MonoArray* mono_ImGUI_GetStyleColorVec4(int flag)
+{
+	ImVec4 result = ImGui::GetStyleColorVec4((ImGuiCol)flag);
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoClass* floatClass = mono_get_single_class();
+	int arraySize = 4;
+	MonoArray* monoArray = mono_array_new(currentDomain, floatClass, arraySize);
+	mono_array_set(monoArray, float, 0, result.x);
+	mono_array_set(monoArray, float, 1, result.y);
+	mono_array_set(monoArray, float, 2, result.z);
+	mono_array_set(monoArray, float, 3, result.w);
+	return monoArray;
+
+}
+
 MonoArray* mono_ImGUI_ColorPicker_GetRGBA_Float(MonoString* label)
 {
 	char* labelPtr = mono_string_to_utf8(label);
@@ -484,6 +500,9 @@ void mono_ImGUI_PopStyleVar(int count)
 {
 	ImGui::PopStyleVar(count);
 }
+
+
+
 
 float mono_ImGUI_GetStyleVarFloat(int which)
 {

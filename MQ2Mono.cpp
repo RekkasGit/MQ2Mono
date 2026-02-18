@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.417);
+PLUGIN_VERSION(0.418);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -75,7 +75,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.417";
+std::string version = "0.418";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -186,6 +186,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA", &mono_ImGUI_ColorPicker_GetRGBA);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker4_Float", &mono_ImGUI_ColorPicker4_Float);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_GetRGBA_Float", &mono_ImGUI_ColorPicker_GetRGBA_Float);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetStyleColorVec4", &mono_ImGUI_GetStyleColorVec4);
+
+
 
 
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ColorPicker_Clear", &mono_ImGUI_ColorPicker_Clear);
