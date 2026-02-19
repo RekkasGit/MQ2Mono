@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.419);
+PLUGIN_VERSION(0.420);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -61,6 +61,7 @@ unsigned char* mono_GetPetBuffData(int* bufferLength);
 unsigned char* mono_GetXtargetInfo(int* bufferLength);
 unsigned char* mono_GetOnAddSpawnsBuffer(int* bufferLength);
 unsigned char* mono_GetAvailableAAIds(int* bufferLength);
+unsigned char* mono_GetAvilableDiscIds(int* bufferLength);
 //yes there are three of them, yes there is a reason due to compatabilty reasons of e3n
 void mono_GetSpawns();
 void mono_GetSpawns2();
@@ -76,7 +77,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.419";
+std::string version = "0.420";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -172,8 +173,10 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3_Delta", &mono_GetSpawns3_Delta);
 	mono_add_internal_call("MonoCore.Core::mq_GetXtargetInfo", &mono_GetXtargetInfo);
 	mono_add_internal_call("MonoCore.Core::mq_GetAvailableAAIds", &mono_GetAvailableAAIds);
-	//unsigned char* mono_ListAvailableAA(int* bufferLength)
+	mono_add_internal_call("MonoCore.Core::mq_GetAvilableDiscIds", &mono_GetAvilableDiscIds);
 
+	
+	
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
 	mono_add_internal_call("MonoCore.Core::mono_GetHoverWindowName", &mono_GetHoverWindowName);
@@ -1782,6 +1785,28 @@ static MonoString* mono_GetHoverWindowName()
 		}
 	}
 	return mono_string_new_wrapper("NULL");
+}
+
+static unsigned char _getAvilableDiscIdsBuffer[16384];
+static unsigned char* mono_GetAvilableDiscIds(int* bufferLength)
+{
+	unsigned char* pBuffer = _getAvilableDiscIdsBuffer;
+	int bufferSize = 0;
+	for (int nCombatAbility = 0; nCombatAbility < NUM_COMBAT_ABILITIES; nCombatAbility++)
+	{
+		if (pCombatSkillsSelectWnd->ShouldDisplayThisSkill(nCombatAbility))
+		{
+			int ID = pLocalPC->GetCombatAbility(nCombatAbility);
+			if (ID > 0)
+			{
+				memcpy(pBuffer, &ID, sizeof(ID));
+				pBuffer += sizeof(ID);
+				bufferSize += sizeof(ID);
+			}
+		}
+	}
+	*bufferLength = bufferSize;
+	return _getAvilableDiscIdsBuffer;
 }
 
 static unsigned char _aaGetAvilableAAIDsBuffer[16384];
