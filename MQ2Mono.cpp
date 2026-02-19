@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.418);
+PLUGIN_VERSION(0.419);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -60,6 +60,7 @@ unsigned char* mono_GetTargetBuffData(int spawnID, int* bufferLength);
 unsigned char* mono_GetPetBuffData(int* bufferLength);
 unsigned char* mono_GetXtargetInfo(int* bufferLength);
 unsigned char* mono_GetOnAddSpawnsBuffer(int* bufferLength);
+unsigned char* mono_GetAvailableAAIds(int* bufferLength);
 //yes there are three of them, yes there is a reason due to compatabilty reasons of e3n
 void mono_GetSpawns();
 void mono_GetSpawns2();
@@ -75,7 +76,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.418";
+std::string version = "0.419";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -170,6 +171,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetTargetBuffData", &mono_GetTargetBuffData);
 	mono_add_internal_call("MonoCore.Core::mq_GetSpawns3_Delta", &mono_GetSpawns3_Delta);
 	mono_add_internal_call("MonoCore.Core::mq_GetXtargetInfo", &mono_GetXtargetInfo);
+	mono_add_internal_call("MonoCore.Core::mq_GetAvailableAAIds", &mono_GetAvailableAAIds);
+	//unsigned char* mono_ListAvailableAA(int* bufferLength)
 
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
@@ -1779,6 +1782,27 @@ static MonoString* mono_GetHoverWindowName()
 		}
 	}
 	return mono_string_new_wrapper("NULL");
+}
+
+static unsigned char _aaGetAvilableAAIDsBuffer[16384];
+static unsigned char* mono_GetAvailableAAIds(int* bufferLength)
+{
+	unsigned char* pBuffer = _aaGetAvilableAAIDsBuffer;
+	int bufferSize = 0;
+
+	int level = pLocalPlayer->Level;
+	for (int nAbility = 0; nAbility < AA_CHAR_MAX_REAL; nAbility++)
+	{
+		if (CAltAbilityData* pAbility = GetAAById(pLocalPC->GetAlternateAbilityId(nAbility), level))
+		{
+			int ID = pAbility->ID;
+			memcpy(pBuffer, &ID, sizeof(ID));
+			pBuffer += sizeof(ID);
+			bufferSize += sizeof(ID);
+		}
+	}
+	*bufferLength = bufferSize;
+	return _aaGetAvilableAAIDsBuffer;
 }
 
 static unsigned char _xtargetInfo[16384];
