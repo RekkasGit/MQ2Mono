@@ -102,6 +102,7 @@ bool mono_ImGUI_ColorPicker4(MonoString* label, int r, int g, int b, int a, int 
 bool mono_ImGUI_ColorPicker4_Float(MonoString* label, float r, float g, float b, float a, int flags);
 MonoArray* mono_ImGUI_ColorPicker_GetRGBA(MonoString* label);
 MonoArray* mono_ImGUI_ColorPicker_GetRGBA_Float(MonoString* label);
+MonoArray* mono_ImGUI_GetStyleColorVec4(int flag);
 void mono_ImGUI_PushID(int id);
 void mono_ImGUI_PopID();
 
