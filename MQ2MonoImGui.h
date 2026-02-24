@@ -76,6 +76,7 @@ bool mono_ImGUI_Selectable_WithFlags(MonoString* label, bool selected, int flags
 
 // progress bar
 void mono_ImGUI_ProgressBar(float fraction, float height, float width, MonoString* overlay);
+void mono_ImGUI_ProgressBarGradient(float progress, float height, float width, unsigned int color_start, unsigned int color_end);
 // Tabs
 bool mono_ImGUI_BeginTabBar(MonoString* name);
 void mono_ImGUI_EndTabBar();
@@ -181,11 +182,27 @@ float mono_ImGUI_GetCursorScreenPosX();
 float mono_ImGUI_GetCursorScreenPosY();
 float mono_ImGUI_GetTextLineHeightWithSpacing();
 float mono_ImGUI_GetFrameHeight();
-void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color, float rounding = 0.0f, int draw_flags = ImDrawFlags_RoundCornersAll);
-void mono_ImGUI_GetWindowDrawList_AddRect(float p_min_x, float p_min_y, float p_max_x, float p_max_y, unsigned int color, float rounding, int rounding_corners_flags, float thickness);
+void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color, float rounding = 0.0f, int rounding_corners_flags = ImDrawFlags_RoundCornersAll);
+void mono_ImGUI_GetWindowDrawList_AddRect(float p_min_x, float p_min_y, float p_max_x, float p_max_y, unsigned int color, float rounding = 0.0f, int rounding_corners_flags = ImDrawFlags_RoundCornersAll, float thickness=1.0f);
 
 void mono_ImGUI_GetWindowDrawList_AddText(float x, float y, uint32_t color, MonoString* text);
-
+void mono_ImGUI_GetWindowDrawList_AddRectFilledMultiColor(float p_min_x, float p_min_y, float p_max_x, float p_max_y,unsigned int col_upr_left, unsigned int col_upr_right, unsigned int col_bot_right, unsigned int col_bot_left);
+void mono_ImGUI_GetWindowDrawList_AddQuad(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int col, float thickness = 1.0f);
+void mono_ImGUI_GetWindowDrawList_AddQuadFilled(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int col);
+void mono_ImGUI_GetWindowDrawList_AddTriangle(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int col, float thickness = 1.0f);
+void mono_ImGUI_GetWindowDrawList_AddTriangleFilled(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int col);
+void mono_ImGUI_GetWindowDrawList_AddCircle(float center_x, float center_y, float radius, unsigned int col, int num_segments = 0, float thickness = 1.0f);
+void mono_ImGUI_GetWindowDrawList_AddCircleFilled(float center_x, float center_y,  float radius, unsigned int col, int num_segments = 0);
+void mono_ImGUI_GetWindowDrawList_AddNgon(float center_x, float center_y,  float radius, unsigned int col, int num_segments, float thickness = 1.0f);
+void mono_ImGUI_GetWindowDrawList_AddNgonFilled(float center_x, float center_y,  float radius, unsigned int col, int num_segments);
+void mono_ImGUI_GetWindowDrawList_AddEllipse(float center_x, float center_y, float radius_x, float radius_y , unsigned int col, float rot = 0.0f, int num_segments = 0, float thickness = 1.0f);
+void mono_ImGUI_GetWindowDrawList_AddEllipseFilled(float center_x, float center_y, float radius_x, float radius_y, unsigned int col, float rot = 0.0f, int num_segments = 0);
+void mono_ImGUI_GetWindowDrawList_AddBezierCubic(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int col, float thickness, int num_segments = 0); // Cubic Bezier (4 control points)
+void mono_ImGUI_GetWindowDrawList_AddBezierQuadratic(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int col, float thickness, int num_segments = 0);               // Quadratic Bezier (3 control points)
+void mono_ImGUI_Internal_ItemSize(float x, float y, float text_baseline_y = 1);
+bool mono_ImGUI_Internal_ItemAdd(float x, float y, float x2, float y2);
+void mono_ImGUI_Internal_CalcItemSize(float x, float y, float default_w, float* r_x, float* r_y);
+void mono_ImGUI_GetWindowDrawList_AddLine(float x, float y, float x_end, float y_end, unsigned int color, float thickness = 1.0f);
 // Item rect bounds and color helpers
 float mono_ImGUI_GetItemRectMinX();
 float mono_ImGUI_GetItemRectMinY();

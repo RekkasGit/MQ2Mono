@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.420);
+PLUGIN_VERSION(0.421);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -77,7 +77,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.420";
+std::string version = "0.421";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -270,6 +270,8 @@ void InitMono()
 
 	//Progress bar
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ProgressBar", &mono_ImGUI_ProgressBar);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ProgressBarGradient", &mono_ImGUI_ProgressBarGradient);
+
 
 	// Tables
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginTable", &mono_ImGUI_BeginTable);
@@ -376,6 +378,23 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRect", &mono_ImGUI_GetWindowDrawList_AddRect);
 
 	
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRectFilledMultiColor", &mono_ImGUI_GetWindowDrawList_AddRectFilledMultiColor);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddQuad", &mono_ImGUI_GetWindowDrawList_AddQuad);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddQuadFilled", &mono_ImGUI_GetWindowDrawList_AddQuadFilled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddTriangle", &mono_ImGUI_GetWindowDrawList_AddTriangle);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddTriangleFilled", &mono_ImGUI_GetWindowDrawList_AddTriangleFilled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddCircle", &mono_ImGUI_GetWindowDrawList_AddCircle);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddCircleFilled", &mono_ImGUI_GetWindowDrawList_AddCircleFilled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddNgon", &mono_ImGUI_GetWindowDrawList_AddNgon);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddNgonFilled", &mono_ImGUI_GetWindowDrawList_AddNgonFilled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddEllipse", &mono_ImGUI_GetWindowDrawList_AddEllipse);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddEllipseFilled", &mono_ImGUI_GetWindowDrawList_AddEllipseFilled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddBezierCubic", &mono_ImGUI_GetWindowDrawList_AddBezierCubic);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddBezierQuadratic", &mono_ImGUI_GetWindowDrawList_AddBezierQuadratic);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Internal_ItemSize", &mono_ImGUI_Internal_ItemSize);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Internal_ItemAdd", &mono_ImGUI_Internal_ItemAdd);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Internal_CalcItemSize", &mono_ImGUI_Internal_CalcItemSize);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddLine", &mono_ImGUI_GetWindowDrawList_AddLine);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddText", &mono_ImGUI_GetWindowDrawList_AddText);
 
 	// Item rect + color helpers
