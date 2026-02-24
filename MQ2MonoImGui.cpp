@@ -1134,6 +1134,7 @@ float mono_ImGUI_Style_GetFontSizeBase()
 	return style.FontSizeBase;
 }
 
+
 bool mono_ImGUI_PushFont(MonoString* name, float font_size)
 {
 	char* fontname = mono_string_to_utf8(name);
@@ -1273,15 +1274,204 @@ void mono_ImGUI_TableSetBgColor(int tablebgcolortarget, unsigned int color, int 
 	ImGui::TableSetBgColor((ImGuiTableBgTarget)tablebgcolortarget, (ImU32) color, currentcolumn);
 }
 
-void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color)
+MonoArray* mono_ImGUI_CalcItemSize(float height, float width, float default_width, float default_height)
+{
+	ImGuiContext& g = *GImGui;
+	const ImGuiStyle& style = g.Style;
+	ImVec2 size = ImGui::CalcItemSize(ImVec2(width, height), ImGui::GetContentRegionAvail().x, g.FontSize + style.FramePadding.y * 2.0f);
+	MonoClass* singleClass = mono_get_single_class();
+	int arraySize = 2;
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoArray* monoArray = mono_array_new(currentDomain, singleClass, arraySize);
+	mono_array_set(monoArray, float, 0, size.x);
+	mono_array_set(monoArray, float, 1, size.y);
+	return monoArray;
+}
+ 
+void mono_ImGUI_Internal_ItemSize(float x, float y,float text_baseline_y)
+{
+	ImGui::ItemSize(ImVec2(x, y), text_baseline_y);
+}
+bool mono_ImGUI_Internal_ItemAdd(float x, float y, float x2, float y2)
+{
+	const ImRect bb(x,y,x2,y2);
+	return ImGui::ItemAdd(bb, 0);
+}
+void mono_ImGUI_Internal_CalcItemSize(float x, float y, float default_w,float* r_x, float* r_y)
+{
+	ImGuiContext& g = *GImGui;
+	const ImGuiStyle& style = g.Style;
+	ImVec2 size = ImGui::CalcItemSize(ImVec2(x, y), default_w, g.FontSize + style.FramePadding.y * 2.0f);
+
+	*r_x = size.x;
+	*r_y = size.y;
+
+}
+void mono_ImGUI_ProgressBarGradient(float progress, float height, float width, unsigned int color_start, unsigned int color_end)
+{
+	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	if (window->SkipItems) return;
+	ImGuiContext& g = *GImGui;
+	const ImGuiStyle& style = g.Style;
+	const ImVec2 pos = window->DC.CursorPos;
+	ImVec2 size = ImGui::CalcItemSize(ImVec2(width, height), ImGui::GetContentRegionAvail().x, g.FontSize + style.FramePadding.y * 2.0f);
+
+	// Define the bounding box
+	const ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+	ImGui::ItemSize(size);
+	if (!ImGui::ItemAdd(bb, 0)) return;
+
+	// Render background
+	window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(ImGuiCol_FrameBg), style.FrameRounding);
+
+	// Render progress gradient
+	float progress_x = bb.Min.x + size.x * progress;
+	if (progress > 0.0f) {
+		window->DrawList->AddRectFilledMultiColor(
+			bb.Min,
+			ImVec2(progress_x, bb.Max.y),
+			color_start,   // Top-Left (Red)
+			color_end,   // Top-Right (Green)
+			color_end,   // Bottom-Right
+			color_start    // Bottom-Left
+		);
+	}
+}
+
+void mono_ImGUI_GetWindowDrawList_AddLine(float x, float y, float x_end,float y_end, unsigned int color,float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddLine(ImVec2(x, y), ImVec2(x_end, y_end), color, thickness);
+	}
+}
+
+void mono_ImGUI_GetWindowDrawList_AddRectFilledMultiColor(float p_min_x, float p_min_y, float p_max_x, float p_max_y, unsigned int col_upr_left, unsigned int col_upr_right, unsigned int col_bot_right, unsigned int col_bot_left)
+{
+	//std::string debugOutout = std::format("mono_ImGUI_GetWindowDrawList_AddRectFilledMultiColorcalled with x {:.1f}: max_x is {:.1f}", p_min_x, p_max_x);
+	//WriteChatColor(debugOutout.c_str());
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddRectFilledMultiColor(ImVec2(p_min_x, p_min_y),
+			ImVec2(p_max_x, p_max_y),
+			col_upr_left,   // Top-Left (Red)
+			col_upr_right,   // Top-Right (Green)
+			col_bot_right,   // Bottom-Right
+			col_bot_left    // Bottom-Left);
+		);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddQuad(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int color, float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddQuad(ImVec2(p1_x, p1_y), ImVec2(p2_x, p2_y), ImVec2(p3_x, p3_y), ImVec2(p4_x, p4_y), color, thickness);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddQuadFilled(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int color)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddQuadFilled(ImVec2(p1_x, p1_y), ImVec2(p2_x, p2_y), ImVec2(p3_x, p3_y), ImVec2(p4_x, p4_y), color);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddTriangle(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int color, float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddTriangle(ImVec2(p1_x, p1_y), ImVec2(p2_x, p2_y), ImVec2(p3_x, p3_y), color,thickness);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddTriangleFilled(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int color)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddTriangleFilled(ImVec2(p1_x, p1_y), ImVec2(p2_x, p2_y), ImVec2(p3_x, p3_y), color);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddCircle(float center_x, float center_y, float radius, unsigned int color, int num_segments, float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddCircle(ImVec2(center_x,center_y),radius,color,num_segments,thickness);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddCircleFilled(float center_x, float center_y, float radius, unsigned int color, int num_segments)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddCircle(ImVec2(center_x, center_y), radius, color, num_segments);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddNgon(float center_x, float center_y, float radius, unsigned int color, int num_segments, float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddNgon(ImVec2(center_x, center_y), radius, color, num_segments, thickness);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddNgonFilled(float center_x, float center_y, float radius, unsigned int col, int num_segments)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddNgon(ImVec2(center_x, center_y), radius, col, num_segments);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddEllipse(float center_x, float center_y, float radius_x, float radius_y, unsigned int col, float rot, int num_segments, float thickness)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddEllipse(ImVec2(center_x, center_y),ImVec2(radius_x,radius_y),col,rot,num_segments,thickness);
+	}
+
+}
+void mono_ImGUI_GetWindowDrawList_AddEllipseFilled(float center_x, float center_y, float radius_x, float radius_y, unsigned int col, float rot, int num_segments)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddEllipse(ImVec2(center_x, center_y), ImVec2(radius_x, radius_y), col, rot, num_segments);
+	}
+}
+void mono_ImGUI_GetWindowDrawList_AddBezierCubic(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, float p4_x, float p4_y, unsigned int col, float thickness, int num_segments)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddBezierCubic(ImVec2(p1_x,p1_y), ImVec2(p2_x, p2_y),ImVec2(p3_x, p3_y),ImVec2(p4_x, p4_y),col,thickness,num_segments);
+	}
+
+}// Cubic Bezier (4 control points)
+void mono_ImGUI_GetWindowDrawList_AddBezierQuadratic(float p1_x, float p1_y, float p2_x, float p2_y, float p3_x, float p3_y, unsigned int col, float thickness, int num_segments)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	if (drawList)
+	{
+		drawList->AddBezierQuadratic(ImVec2(p1_x, p1_y), ImVec2(p2_x, p2_y), ImVec2(p3_x, p3_y),col,thickness,num_segments);
+	}
+}// Quadratic Bezier (3 control points)
+
+
+void mono_ImGUI_GetWindowDrawList_AddRectFilled(float x1, float y1, float x2, float y2, uint32_t color, float rounding, int rounding_corners_flags)
 {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     if (drawList)
     {
-        drawList->AddRectFilled(ImVec2(x1, y1), ImVec2(x2, y2), color);
+        drawList->AddRectFilled(ImVec2(x1, y1), ImVec2(x2, y2), color,rounding,rounding_corners_flags);
     }
 }
-void mono_ImGUI_GetWindowDrawList_AddRect(float p_min_x,float p_min_y, float p_max_x, float p_max_y, unsigned int color, float rounding = 0.0f, int rounding_corners_flags = ImDrawFlags_RoundCornersAll, float thickness = 1.0f)
+void mono_ImGUI_GetWindowDrawList_AddRect(float p_min_x,float p_min_y, float p_max_x, float p_max_y, unsigned int color, float rounding, int rounding_corners_flags, float thickness)
 {
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 	if (draw_list)
