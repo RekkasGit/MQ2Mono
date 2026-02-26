@@ -19,7 +19,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.421);
+PLUGIN_VERSION(0.422);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -77,7 +77,7 @@ MonoString* mono_GetFocusedWindowName();
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.421";
+std::string version = "0.422";
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -373,6 +373,9 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetCursorScreenPosY", &mono_ImGUI_GetCursorScreenPosY);
 
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetTextLineHeightWithSpacing", &mono_ImGUI_GetTextLineHeightWithSpacing);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetTextLineHeight", &mono_ImGUI_GetTextLineHeight);
+
+
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetFrameHeight", &mono_ImGUI_GetFrameHeight);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRectFilled", &mono_ImGUI_GetWindowDrawList_AddRectFilled);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowDrawList_AddRect", &mono_ImGUI_GetWindowDrawList_AddRect);

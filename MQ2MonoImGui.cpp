@@ -1258,10 +1258,17 @@ void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size)
 
 
 
+float mono_ImGUI_GetTextLineHeight()
+{
+
+	return ImGui::GetTextLineHeight();
+}
+
 
 float mono_ImGUI_GetTextLineHeightWithSpacing()
 {
-    return ImGui::GetTextLineHeightWithSpacing();
+
+	return ImGui::GetTextLineHeightWithSpacing();
 }
 
 float mono_ImGUI_GetFrameHeight()
