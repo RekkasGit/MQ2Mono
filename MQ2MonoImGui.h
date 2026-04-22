@@ -4,6 +4,7 @@
 #include <mono/metadata/assembly.h>
 #include <mono/jit/jit.h>
 #include <cstdint>
+#include <string>
 
 // All ImGui wrapper function declarations used by MQ2Mono
 // These are used by mono_add_internal_call in MQ2Mono.cpp
@@ -163,8 +164,10 @@ void mono_ImGUI_EndTooltip();
 
 // Images and textures
 void mono_ImGUI_Image(void* textureId, float width, float height);
+void mono_ImGUI_DrawItemIconByIconIndex(int iconIndex, float size);
 void mono_ImGUI_DrawSpellIconByIconIndex(int iconIndex, float size);
 void mono_ImGUI_DrawSpellIconBySpellID(int spellId, float size);
+void* mono_GetItemIconTextureByIconIndex(int iconIndex);
 
 // Fonts
 void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const uint16_t* ranges, int range_count, bool merge_mode);

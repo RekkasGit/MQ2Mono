@@ -7,7 +7,14 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
+#include <filesystem>
+#include <d3d11.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 #include <mq/imgui/Widgets.h>
+
+#pragma comment(lib, "windowscodecs.lib")
 
 // All ImGui wrapper function definitions moved out of MQ2Mono.cpp
 // These rely on globals declared in MQ2MonoShared.h and defined in MQ2Mono.cpp
@@ -1217,6 +1224,192 @@ void mono_ImGUI_PushMaterialIconsFont()
 	// else: no-op if not found
 }
 static CTextureAnimation* s_pTASpellIcons = nullptr;
+static CTextureAnimation* s_pTAItemIcons = nullptr;
+static std::unordered_map<int, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> s_itemIconTextureCache;
+static bool s_wicInitialized = false;
+
+namespace
+{
+	struct ImGui_ImplDX11_Data
+	{
+		ID3D11Device* pd3dDevice;
+		ID3D11DeviceContext* pd3dDeviceContext;
+		IDXGIFactory* pFactory;
+		ID3D11Buffer* pVB;
+		ID3D11Buffer* pIB;
+		ID3D11VertexShader* pVertexShader;
+		ID3D11InputLayout* pInputLayout;
+		ID3D11Buffer* pVertexConstantBuffer;
+		ID3D11PixelShader* pPixelShader;
+		ID3D11SamplerState* pTexSamplerLinear;
+		ID3D11RasterizerState* pRasterizerState;
+		ID3D11BlendState* pBlendState;
+		ID3D11DepthStencilState* pDepthStencilState;
+		int VertexBufferSize;
+		int IndexBufferSize;
+	};
+
+	ID3D11Device* GetImGuiD3D11Device()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (!io.BackendRendererUserData)
+			return nullptr;
+
+		auto* backendData = static_cast<ImGui_ImplDX11_Data*>(io.BackendRendererUserData);
+		if (backendData && backendData->pd3dDevice)
+			return backendData->pd3dDevice;
+
+		return nullptr;
+	}
+
+	bool EnsureWicInitialized()
+	{
+		if (s_wicInitialized)
+			return true;
+
+		const HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		if (SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE)
+		{
+			s_wicInitialized = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LoadTextureFromFile(
+		ID3D11Device* device, const std::filesystem::path& filePath)
+	{
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+		if (!device || !EnsureWicInitialized())
+			return srv;
+
+		Microsoft::WRL::ComPtr<IWICImagingFactory> wicFactory;
+		HRESULT hr = CoCreateInstance(
+			CLSID_WICImagingFactory,
+			nullptr,
+			CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&wicFactory));
+		if (FAILED(hr))
+			return srv;
+
+		Microsoft::WRL::ComPtr<IWICBitmapDecoder> decoder;
+		hr = wicFactory->CreateDecoderFromFilename(
+			filePath.c_str(),
+			nullptr,
+			GENERIC_READ,
+			WICDecodeMetadataCacheOnLoad,
+			&decoder);
+		if (FAILED(hr))
+			return srv;
+
+		Microsoft::WRL::ComPtr<IWICBitmapFrameDecode> frame;
+		hr = decoder->GetFrame(0, &frame);
+		if (FAILED(hr))
+			return srv;
+
+		Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
+		hr = wicFactory->CreateFormatConverter(&converter);
+		if (FAILED(hr))
+			return srv;
+
+		hr = converter->Initialize(
+			frame.Get(),
+			GUID_WICPixelFormat32bppRGBA,
+			WICBitmapDitherTypeNone,
+			nullptr,
+			0.0f,
+			WICBitmapPaletteTypeCustom);
+		if (FAILED(hr))
+			return srv;
+
+		UINT width = 0;
+		UINT height = 0;
+		converter->GetSize(&width, &height);
+		if (width == 0 || height == 0)
+			return srv;
+
+		std::vector<BYTE> pixels(width * height * 4);
+		hr = converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data());
+		if (FAILED(hr))
+			return srv;
+
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = width;
+		desc.Height = height;
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.SampleDesc.Count = 1;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		D3D11_SUBRESOURCE_DATA initData = {};
+		initData.pSysMem = pixels.data();
+		initData.SysMemPitch = width * 4;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+		hr = device->CreateTexture2D(&desc, &initData, &texture);
+		if (FAILED(hr))
+			return srv;
+
+		hr = device->CreateShaderResourceView(texture.Get(), nullptr, &srv);
+		return FAILED(hr) ? Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>() : srv;
+	}
+}
+
+void mono_ImGUI_DrawItemIconByIconIndex(int iconIndex, float size)
+{
+	if (!pSidlMgr)
+		return;
+
+	if (iconIndex <= 0)
+		return;
+
+	if (!s_pTAItemIcons)
+	{
+		if (CTextureAnimation* temp = pSidlMgr->FindAnimation("A_DragItem"))
+		{
+			s_pTAItemIcons = new CTextureAnimation(*temp);
+		}
+	}
+
+	if (!s_pTAItemIcons)
+		return;
+
+	int iconFrame = iconIndex - 500;
+	if (iconFrame < 0)
+		return;
+
+	s_pTAItemIcons->SetCurCell(iconFrame);
+	mq::imgui::DrawTextureAnimation(s_pTAItemIcons, eqlib::CXSize((int)size, (int)size));
+}
+
+void* mono_GetItemIconTextureByIconIndex(int iconIndex)
+{
+	if (iconIndex <= 0)
+		return nullptr;
+
+	auto cached = s_itemIconTextureCache.find(iconIndex);
+	if (cached != s_itemIconTextureCache.end())
+		return cached->second.Get();
+
+	ID3D11Device* device = GetImGuiD3D11Device();
+	if (!device)
+		return nullptr;
+
+	std::filesystem::path iconPath = std::filesystem::path("Resources") / "icons" / ("item_" + std::to_string(iconIndex) + ".png");
+	if (!std::filesystem::exists(iconPath))
+		return nullptr;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> texture = LoadTextureFromFile(device, iconPath);
+	if (!texture)
+		return nullptr;
+
+	void* texturePtr = texture.Get();
+	s_itemIconTextureCache.emplace(iconIndex, std::move(texture));
+	return texturePtr;
+}
 
 void mono_ImGUI_DrawSpellIconByIconIndex(int iconIndex, float size)
 {

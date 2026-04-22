@@ -14,7 +14,9 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <mq/imgui/Widgets.h>
+#include <eqlib/game/ItemLinks.h>
 #include "MQ2MonoImGui.h"
+#include "MQ2MonoInventoryWidgets.h"
 #include "MQ2MonoShared.h"
 PreSetup("MQ2Mono");
 
@@ -49,6 +51,7 @@ void mono_ExecuteCommand(unsigned int commandID, bool holdKey);
 void mono_ExecuteCommandByName(MonoString* name, bool holdKey);
 void mono_DoCommandDelayed(MonoString* text);
 void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z);
+void mono_ExecuteItemLink(MonoString* link);
 void ApplySpawnInfoToBuffer(PSPAWNINFO spawn, unsigned char* pBuffer, int& bufferSize);
 //spell data methods
 int mono_GetSpellDataEffectCount(MonoString* query);
@@ -185,6 +188,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommandByName", &mono_ExecuteCommandByName);
 	mono_add_internal_call("MonoCore.Core::mq_ExecuteCommand", &mono_ExecuteCommand);
 	mono_add_internal_call("MonoCore.Core::mq_LookAt", &mono_LookAt);
+	mono_add_internal_call("MonoCore.Core::mq_ExecuteItemLink", &mono_ExecuteItemLink);
 	mono_add_internal_call("MonoCore.Core::mq_Memory_GetPageFileSize", &mono_Memory_GetPageFileSize);
 
 	//ImGui stuff
@@ -345,6 +349,11 @@ void InitMono()
 
 	// Image display
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Image", &mono_ImGUI_Image);
+
+	// Item and spell icon drawing
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_DrawItemIconByIconIndex", &mono_ImGUI_DrawItemIconByIconIndex);
+	mono_add_internal_call("MonoCore.E3ImGUI::mq_GetItemIconTextureByIconIndex", &mono_GetItemIconTextureByIconIndex);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InventorySlotTile", &mono_ImGUI_InventorySlotTile);
 
 	// Fonts
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_AddFontFromFileTTF", &mono_ImGUI_AddFontFromFileTTF);
@@ -1636,6 +1645,20 @@ static void mono_ExecuteCommand(unsigned int commandID, bool holdKey)
 {
 	mq::ExecuteCmd(commandID, holdKey);
 
+}
+
+static void mono_ExecuteItemLink(MonoString* link)
+{
+	if (!link) return;
+	char* cppString = mono_string_to_utf8(link);
+	if (!cppString) return;
+
+	eqlib::TextTagInfo linkInfo = eqlib::ExtractLink(cppString);
+	if (linkInfo.tagCode != eqlib::ETAG_INVALID)
+	{
+		eqlib::ExecuteTextLink(linkInfo);
+	}
+	mono_free(cppString);
 }
 
 static void mono_LookAt(FLOAT X, FLOAT Y, FLOAT Z)
