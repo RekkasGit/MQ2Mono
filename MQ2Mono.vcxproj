@@ -102,11 +102,13 @@
     <ClCompile Include="MQ2Mono.cpp" />
     <ClCompile Include="MQ2MonoInventoryWidgets.cpp" />
     <ClCompile Include="MQ2MonoImGui.cpp" />
+    <ClCompile Include="MQ2MonoImAnim.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MQ2MonoInventoryWidgets.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="MQ2MonoImGui.h" />
+    <ClInclude Include="MQ2MonoImAnim.h" />
     <ClInclude Include="MQ2MonoShared.h" />
   </ItemGroup>
   <ItemGroup>

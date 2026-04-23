@@ -16,6 +16,7 @@
 #include <mq/imgui/Widgets.h>
 #include <eqlib/game/ItemLinks.h>
 #include "MQ2MonoImGui.h"
+#include "MQ2MonoImAnim.h"
 #include "MQ2MonoInventoryWidgets.h"
 #include "MQ2MonoShared.h"
 PreSetup("MQ2Mono");
@@ -422,6 +423,248 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::mq_CreateTextureFromData", &mono_CreateTextureFromData);
 	mono_add_internal_call("MonoCore.E3ImGUI::mq_DestroyTexture", &mono_DestroyTexture);
 
+	// ImAnim wrappers
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_UpdateBeginFrame", &mono_ImAnim_UpdateBeginFrame);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GC", &mono_ImAnim_GC);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PoolClear", &mono_ImAnim_PoolClear);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Reserve", &mono_ImAnim_Reserve);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SetEaseLutSamples", &mono_ImAnim_SetEaseLutSamples);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SetGlobalTimeScale", &mono_ImAnim_SetGlobalTimeScale);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetGlobalTimeScale", &mono_ImAnim_GetGlobalTimeScale);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SetLazyInit", &mono_ImAnim_SetLazyInit);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_IsLazyInitEnabled", &mono_ImAnim_IsLazyInitEnabled);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RegisterCustomEase", &mono_ImAnim_RegisterCustomEase);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetCustomEase", &mono_ImAnim_GetCustomEase);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextCreate", &mono_ImAnim_ContextCreate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextDestroy", &mono_ImAnim_ContextDestroy);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextSetCurrent", &mono_ImAnim_ContextSetCurrent);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextSetUserData", &mono_ImAnim_ContextSetUserData);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextGetCurrent", &mono_ImAnim_ContextGetCurrent);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextGetUserData", &mono_ImAnim_ContextGetUserData);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ContextGetDefaultContext", &mono_ImAnim_ContextGetDefaultContext);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerEnable", &mono_ImAnim_ProfilerEnable);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerIsEnabled", &mono_ImAnim_ProfilerIsEnabled);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerBeginFrame", &mono_ImAnim_ProfilerBeginFrame);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerEndFrame", &mono_ImAnim_ProfilerEndFrame);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerBegin", &mono_ImAnim_ProfilerBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ProfilerEnd", &mono_ImAnim_ProfilerEnd);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DragBegin", &mono_ImAnim_DragBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DragUpdate", &mono_ImAnim_DragUpdate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DragRelease", &mono_ImAnim_DragRelease);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DragCancel", &mono_ImAnim_DragCancel);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_EvalPreset", &mono_ImAnim_EvalPreset);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenFloat", &mono_ImAnim_TweenFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec2", &mono_ImAnim_TweenVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec4", &mono_ImAnim_TweenVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenInt", &mono_ImAnim_TweenInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenColor", &mono_ImAnim_TweenColor);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenFloatRel", &mono_ImAnim_TweenFloatRel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec2Rel", &mono_ImAnim_TweenVec2Rel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec4Rel", &mono_ImAnim_TweenVec4Rel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenColorRel", &mono_ImAnim_TweenColorRel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenFloatResolved", &mono_ImAnim_TweenFloatResolved);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec2Resolved", &mono_ImAnim_TweenVec2Resolved);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec4Resolved", &mono_ImAnim_TweenVec4Resolved);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenColorResolved", &mono_ImAnim_TweenColorResolved);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenIntResolved", &mono_ImAnim_TweenIntResolved);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec2PerAxis", &mono_ImAnim_TweenVec2PerAxis);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenVec4PerAxis", &mono_ImAnim_TweenVec4PerAxis);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenColorPerAxis", &mono_ImAnim_TweenColorPerAxis);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RebaseFloat", &mono_ImAnim_RebaseFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RebaseVec2", &mono_ImAnim_RebaseVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RebaseVec4", &mono_ImAnim_RebaseVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RebaseColor", &mono_ImAnim_RebaseColor);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_RebaseInt", &mono_ImAnim_RebaseInt);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetBlendedColor", &mono_ImAnim_GetBlendedColor);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Oscillate", &mono_ImAnim_Oscillate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_OscillateInt", &mono_ImAnim_OscillateInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_OscillateVec2", &mono_ImAnim_OscillateVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_OscillateVec4", &mono_ImAnim_OscillateVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_OscillateColor", &mono_ImAnim_OscillateColor);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Shake", &mono_ImAnim_Shake);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShakeInt", &mono_ImAnim_ShakeInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShakeVec2", &mono_ImAnim_ShakeVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShakeVec4", &mono_ImAnim_ShakeVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShakeColor", &mono_ImAnim_ShakeColor);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Wiggle", &mono_ImAnim_Wiggle);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_WiggleInt", &mono_ImAnim_WiggleInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_WiggleVec2", &mono_ImAnim_WiggleVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_WiggleVec4", &mono_ImAnim_WiggleVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_WiggleColor", &mono_ImAnim_WiggleColor);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TriggerShake", &mono_ImAnim_TriggerShake);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ScrollToY", &mono_ImAnim_ScrollToY);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ScrollToX", &mono_ImAnim_ScrollToX);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ScrollToTop", &mono_ImAnim_ScrollToTop);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ScrollToBottom", &mono_ImAnim_ScrollToBottom);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_AnchorSize", &mono_ImAnim_AnchorSize);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_BezierQuadratic", &mono_ImAnim_BezierQuadratic);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_BezierCubic", &mono_ImAnim_BezierCubic);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_CatmullRom", &mono_ImAnim_CatmullRom);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_BezierQuadraticDeriv", &mono_ImAnim_BezierQuadraticDeriv);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_BezierCubicDeriv", &mono_ImAnim_BezierCubicDeriv);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_CatmullRomDeriv", &mono_ImAnim_CatmullRomDeriv);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathBegin", &mono_ImAnim_PathBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathLineTo", &mono_ImAnim_PathLineTo);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathQuadraticTo", &mono_ImAnim_PathQuadraticTo);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathCubicTo", &mono_ImAnim_PathCubicTo);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathCatmullTo", &mono_ImAnim_PathCatmullTo);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathClose", &mono_ImAnim_PathClose);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathEnd", &mono_ImAnim_PathEnd);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathExists", &mono_ImAnim_PathExists);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathLength", &mono_ImAnim_PathLength);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathEvaluate", &mono_ImAnim_PathEvaluate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathTangent", &mono_ImAnim_PathTangent);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathAngle", &mono_ImAnim_PathAngle);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenPath", &mono_ImAnim_TweenPath);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenPathAngle", &mono_ImAnim_TweenPathAngle);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathBuildArcLUT", &mono_ImAnim_PathBuildArcLUT);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathHasArcLUT", &mono_ImAnim_PathHasArcLUT);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathDistanceToT", &mono_ImAnim_PathDistanceToT);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathEvaluateAtDistance", &mono_ImAnim_PathEvaluateAtDistance);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathAngleAtDistance", &mono_ImAnim_PathAngleAtDistance);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathTangentAtDistance", &mono_ImAnim_PathTangentAtDistance);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathMorph", &mono_ImAnim_PathMorph);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathMorphTangent", &mono_ImAnim_PathMorphTangent);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PathMorphAngle", &mono_ImAnim_PathMorphAngle);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenPathMorph", &mono_ImAnim_TweenPathMorph);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetMorphBlend", &mono_ImAnim_GetMorphBlend);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextPath", &mono_ImAnim_TextPath);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextPathAnimated", &mono_ImAnim_TextPathAnimated);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextPathWidth", &mono_ImAnim_TextPathWidth);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TransformQuad", &mono_ImAnim_TransformQuad);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_MakeGlyphQuad", &mono_ImAnim_MakeGlyphQuad);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextStagger", &mono_ImAnim_TextStagger);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextStaggerWidth", &mono_ImAnim_TextStaggerWidth);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TextStaggerDuration", &mono_ImAnim_TextStaggerDuration);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Noise2D", &mono_ImAnim_Noise2D);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Noise3D", &mono_ImAnim_Noise3D);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_NoiseChannelFloat", &mono_ImAnim_NoiseChannelFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_NoiseChannelVec2", &mono_ImAnim_NoiseChannelVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_NoiseChannelVec4", &mono_ImAnim_NoiseChannelVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_NoiseChannelColor", &mono_ImAnim_NoiseChannelColor);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SmoothNoiseFloat", &mono_ImAnim_SmoothNoiseFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SmoothNoiseVec2", &mono_ImAnim_SmoothNoiseVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SmoothNoiseVec4", &mono_ImAnim_SmoothNoiseVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_SmoothNoiseColor", &mono_ImAnim_SmoothNoiseColor);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleRegister", &mono_ImAnim_StyleRegister);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleRegisterCurrent", &mono_ImAnim_StyleRegisterCurrent);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleBlend", &mono_ImAnim_StyleBlend);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleTween", &mono_ImAnim_StyleTween);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleBlendTo", &mono_ImAnim_StyleBlendTo);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleExists", &mono_ImAnim_StyleExists);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StyleUnregister", &mono_ImAnim_StyleUnregister);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientBegin", &mono_ImAnim_GradientBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientClear", &mono_ImAnim_GradientClear);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientAddStop", &mono_ImAnim_GradientAddStop);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientExists", &mono_ImAnim_GradientExists);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientDestroy", &mono_ImAnim_GradientDestroy);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientSample", &mono_ImAnim_GradientSample);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientGetData", &mono_ImAnim_GradientGetData);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GradientLerp", &mono_ImAnim_GradientLerp);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenGradient", &mono_ImAnim_TweenGradient);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TransformLerp", &mono_ImAnim_TransformLerp);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TweenTransform", &mono_ImAnim_TweenTransform);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TransformFromMatrix", &mono_ImAnim_TransformFromMatrix);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_TransformToMatrix", &mono_ImAnim_TransformToMatrix);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipInit", &mono_ImAnim_ClipInit);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipShutdown", &mono_ImAnim_ClipShutdown);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipUpdate", &mono_ImAnim_ClipUpdate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipGC", &mono_ImAnim_ClipGC);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_Play", &mono_ImAnim_Play);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_PlayStagger", &mono_ImAnim_PlayStagger);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetInstance", &mono_ImAnim_GetInstance);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_StaggerDelay", &mono_ImAnim_StaggerDelay);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipDuration", &mono_ImAnim_ClipDuration);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipExists", &mono_ImAnim_ClipExists);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSave", &mono_ImAnim_ClipSave);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipLoad", &mono_ImAnim_ClipLoad);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstancePause", &mono_ImAnim_InstancePause);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceResume", &mono_ImAnim_InstanceResume);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceStop", &mono_ImAnim_InstanceStop);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceDestroy", &mono_ImAnim_InstanceDestroy);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceSeek", &mono_ImAnim_InstanceSeek);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceSetTimeScale", &mono_ImAnim_InstanceSetTimeScale);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceSetWeight", &mono_ImAnim_InstanceSetWeight);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceThen", &mono_ImAnim_InstanceThen);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceThenDelay", &mono_ImAnim_InstanceThenDelay);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceTime", &mono_ImAnim_InstanceTime);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceDuration", &mono_ImAnim_InstanceDuration);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceIsPlaying", &mono_ImAnim_InstanceIsPlaying);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceIsPaused", &mono_ImAnim_InstanceIsPaused);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceValid", &mono_ImAnim_InstanceValid);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceGetFloat", &mono_ImAnim_InstanceGetFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceGetVec2", &mono_ImAnim_InstanceGetVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceGetVec4", &mono_ImAnim_InstanceGetVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceGetInt", &mono_ImAnim_InstanceGetInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_InstanceGetColor", &mono_ImAnim_InstanceGetColor);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_LayerBegin", &mono_ImAnim_LayerBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_LayerAdd", &mono_ImAnim_LayerAdd);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_LayerEnd", &mono_ImAnim_LayerEnd);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetBlendedFloat", &mono_ImAnim_GetBlendedFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetBlendedVec2", &mono_ImAnim_GetBlendedVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetBlendedVec4", &mono_ImAnim_GetBlendedVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_GetBlendedInt", &mono_ImAnim_GetBlendedInt);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipBegin", &mono_ImAnim_ClipBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyFloat", &mono_ImAnim_ClipKeyFloat);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec2", &mono_ImAnim_ClipKeyVec2);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec4", &mono_ImAnim_ClipKeyVec4);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyInt", &mono_ImAnim_ClipKeyInt);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyColor", &mono_ImAnim_ClipKeyColor);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyFloatVar", &mono_ImAnim_ClipKeyFloatVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec2Var", &mono_ImAnim_ClipKeyVec2Var);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec4Var", &mono_ImAnim_ClipKeyVec4Var);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyIntVar", &mono_ImAnim_ClipKeyIntVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyColorVar", &mono_ImAnim_ClipKeyColorVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyFloatSpring", &mono_ImAnim_ClipKeyFloatSpring);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyFloatRel", &mono_ImAnim_ClipKeyFloatRel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec2Rel", &mono_ImAnim_ClipKeyVec2Rel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyVec4Rel", &mono_ImAnim_ClipKeyVec4Rel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipKeyColorRel", &mono_ImAnim_ClipKeyColorRel);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSeqBegin", &mono_ImAnim_ClipSeqBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSeqEnd", &mono_ImAnim_ClipSeqEnd);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipParBegin", &mono_ImAnim_ClipParBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipParEnd", &mono_ImAnim_ClipParEnd);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipMarker", &mono_ImAnim_ClipMarker);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetLoop", &mono_ImAnim_ClipSetLoop);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetDelay", &mono_ImAnim_ClipSetDelay);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetStagger", &mono_ImAnim_ClipSetStagger);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetDurationVar", &mono_ImAnim_ClipSetDurationVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetDelayVar", &mono_ImAnim_ClipSetDelayVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipSetTimescaleVar", &mono_ImAnim_ClipSetTimescaleVar);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipOnBegin", &mono_ImAnim_ClipOnBegin);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipOnUpdate", &mono_ImAnim_ClipOnUpdate);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipOnComplete", &mono_ImAnim_ClipOnComplete);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ClipEnd", &mono_ImAnim_ClipEnd);
+
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShowUnifiedInspector", &mono_ImAnim_ShowUnifiedInspector);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_ShowDebugTimeline", &mono_ImAnim_ShowDebugTimeline);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DemoWindow", &mono_ImAnim_DemoWindow);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DocWindow", &mono_ImAnim_DocWindow);
+	mono_add_internal_call("MonoCore.E3ImAnim::imanim_UsecaseWindow", &mono_ImAnim_UsecaseWindow);
 
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
 	bmUpdateMonoOnIMGUIPulse = AddMQ2Benchmark("UpdateMonoIMGUIOnPulse");
@@ -3563,7 +3806,6 @@ static void mono_GetSpawns()
 
 }
 #pragma endregion Exposed methods to plugin
-
 
 
 
