@@ -666,6 +666,11 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImAnim::imanim_DocWindow", &mono_ImAnim_DocWindow);
 	mono_add_internal_call("MonoCore.E3ImAnim::imanim_UsecaseWindow", &mono_ImAnim_UsecaseWindow);
 
+	// ImAnim is stateful and expects a valid current context before tween calls.
+	// MQ2Mono owns one runtime context for managed callers so the exposed API can
+	// stay thin and feel similar to the ImGui bindings from the C# side.
+	mono_ImAnim_RuntimeInit();
+
 	bmUpdateMonoOnPulse = AddMQ2Benchmark("UpdateMonoOnPulse");
 	bmUpdateMonoOnIMGUIPulse = AddMQ2Benchmark("UpdateMonoIMGUIOnPulse");
 	initialized = true;
@@ -1118,6 +1123,7 @@ PLUGIN_API void ShutdownPlugin()
 	if (initialized)
 	{
 		UnloadAllAppDomains();
+		mono_ImAnim_RuntimeShutdown();
 		mono_jit_cleanup(mono_get_root_domain());
 	}
 	RemoveMQ2Benchmark(bmUpdateMonoOnPulse);
@@ -3806,7 +3812,6 @@ static void mono_GetSpawns()
 
 }
 #pragma endregion Exposed methods to plugin
-
 
 
 

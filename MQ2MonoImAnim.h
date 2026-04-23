@@ -11,6 +11,12 @@
 // Namespace on C# side: MonoCore.E3ImAnim
 // ============================================================================
 
+// MQ2Mono owns one ImAnim context for the Mono runtime.
+// The public C# bindings stay thin, but the native side must ensure the
+// stateful ImAnim runtime is pointing at a valid context before tween calls.
+void mono_ImAnim_RuntimeInit();
+void mono_ImAnim_RuntimeShutdown();
+
 // ----------------------------------------------------------------------------
 // Frame / Global Management
 // ----------------------------------------------------------------------------

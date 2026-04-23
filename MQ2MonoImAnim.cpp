@@ -30,12 +30,47 @@ struct MonoMarkerCallbackRef
 static std::vector<MonoClipCallbackRef*> g_monoImAnimClipCallbackRefs;
 static std::vector<MonoMarkerCallbackRef*> g_monoImAnimMarkerCallbackRefs;
 static std::array<uint32_t, 16> g_customEaseHandles = {};
+static iam_context* g_monoImAnimContext = nullptr;
 
 struct ResolvedFloatContext { MonoObject* delegate = nullptr; };
 struct ResolvedIntContext { MonoObject* delegate = nullptr; };
 struct ResolvedVec2Context { MonoObject* delegate = nullptr; };
 struct ResolvedVec4Context { MonoObject* delegate = nullptr; };
 struct ResolvedColorContext { MonoObject* delegate = nullptr; };
+
+static inline void EnsureMonoImAnimContext()
+{
+	// ImAnim keeps state in a global "current context". Exposing thin wrappers to
+	// C# is fine, but only if MQ2Mono guarantees those wrappers always run against
+	// a valid context that outlives the managed callers.
+	if (!g_monoImAnimContext)
+	{
+		g_monoImAnimContext = iam_context_create();
+		iam_set_lazy_init(true);
+	}
+
+	iam_context_set_current(g_monoImAnimContext);
+}
+
+void mono_ImAnim_RuntimeInit()
+{
+	EnsureMonoImAnimContext();
+}
+
+void mono_ImAnim_RuntimeShutdown()
+{
+	if (!g_monoImAnimContext)
+		return;
+
+	// Reset wrapper-owned builder caches before destroying the underlying runtime
+	// context they depend on.
+	g_monoImAnimClips.clear();
+	g_monoImAnimPaths.clear();
+	g_monoImAnimGradients.clear();
+
+	iam_context_destroy(g_monoImAnimContext);
+	g_monoImAnimContext = nullptr;
+}
 
 static inline iam_ease_desc MakeEaseDesc(int type, float p0, float p1, float p2, float p3)
 {
@@ -497,51 +532,61 @@ static MonoMarkerCallbackRef* CreateMarkerCallbackRef(MonoObject* delegate)
 
 void mono_ImAnim_UpdateBeginFrame()
 {
+	EnsureMonoImAnimContext();
 	iam_update_begin_frame();
 }
 
 void mono_ImAnim_GC(unsigned int max_age_frames)
 {
+	EnsureMonoImAnimContext();
 	iam_gc(max_age_frames);
 }
 
 void mono_ImAnim_PoolClear()
 {
+	EnsureMonoImAnimContext();
 	iam_pool_clear();
 }
 
 void mono_ImAnim_Reserve(int cap_float, int cap_vec2, int cap_vec4, int cap_int, int cap_color)
 {
+	EnsureMonoImAnimContext();
 	iam_reserve(cap_float, cap_vec2, cap_vec4, cap_int, cap_color);
 }
 
 void mono_ImAnim_SetEaseLutSamples(int count)
 {
+	EnsureMonoImAnimContext();
 	iam_set_ease_lut_samples(count);
 }
 
 void mono_ImAnim_SetGlobalTimeScale(float scale)
 {
+	EnsureMonoImAnimContext();
 	iam_set_global_time_scale(scale);
 }
 
 float mono_ImAnim_GetGlobalTimeScale()
 {
+	EnsureMonoImAnimContext();
 	return iam_get_global_time_scale();
 }
 
 void mono_ImAnim_SetLazyInit(bool enable)
 {
+	EnsureMonoImAnimContext();
 	iam_set_lazy_init(enable);
 }
 
 bool mono_ImAnim_IsLazyInitEnabled()
 {
+	EnsureMonoImAnimContext();
 	return iam_is_lazy_init_enabled();
 }
 
 void mono_ImAnim_RegisterCustomEase(int slot, MonoObject* delegate)
 {
+	EnsureMonoImAnimContext();
 	if (slot < 0 || slot >= static_cast<int>(g_customEaseHandles.size()))
 		return;
 
@@ -563,6 +608,7 @@ void mono_ImAnim_RegisterCustomEase(int slot, MonoObject* delegate)
 
 MonoObject* mono_ImAnim_GetCustomEase(int slot)
 {
+	EnsureMonoImAnimContext();
 	if (slot < 0 || slot >= static_cast<int>(g_customEaseHandles.size()))
 		return nullptr;
 	if (g_customEaseHandles[slot] == 0)
@@ -681,6 +727,7 @@ void mono_ImAnim_DragCancel(unsigned int id)
 
 float mono_ImAnim_EvalPreset(int type, float t)
 {
+	EnsureMonoImAnimContext();
 	return iam_eval_preset(type, t);
 }
 
@@ -690,28 +737,33 @@ float mono_ImAnim_EvalPreset(int type, float t)
 
 float mono_ImAnim_TweenFloat(unsigned int id, unsigned int channel_id, float target, float dur, int ease_type, float p0, float p1, float p2, float p3, int policy, float dt, float init_value)
 {
+	EnsureMonoImAnimContext();
 	return iam_tween_float(id, channel_id, target, dur, MakeEaseDesc(ease_type, p0, p1, p2, p3), policy, dt, init_value);
 }
 
 MonoArray* mono_ImAnim_TweenVec2(unsigned int id, unsigned int channel_id, float target_x, float target_y, float dur, int ease_type, float p0, float p1, float p2, float p3, int policy, float dt, float init_x, float init_y)
 {
+	EnsureMonoImAnimContext();
 	ImVec2 result = iam_tween_vec2(id, channel_id, ImVec2(target_x, target_y), dur, MakeEaseDesc(ease_type, p0, p1, p2, p3), policy, dt, ImVec2(init_x, init_y));
 	return MakeFloatArray2(result.x, result.y);
 }
 
 MonoArray* mono_ImAnim_TweenVec4(unsigned int id, unsigned int channel_id, float target_x, float target_y, float target_z, float target_w, float dur, int ease_type, float p0, float p1, float p2, float p3, int policy, float dt, float init_x, float init_y, float init_z, float init_w)
 {
+	EnsureMonoImAnimContext();
 	ImVec4 result = iam_tween_vec4(id, channel_id, ImVec4(target_x, target_y, target_z, target_w), dur, MakeEaseDesc(ease_type, p0, p1, p2, p3), policy, dt, ImVec4(init_x, init_y, init_z, init_w));
 	return MakeFloatArray4(result.x, result.y, result.z, result.w);
 }
 
 int mono_ImAnim_TweenInt(unsigned int id, unsigned int channel_id, int target, float dur, int ease_type, float p0, float p1, float p2, float p3, int policy, float dt, int init_value)
 {
+	EnsureMonoImAnimContext();
 	return iam_tween_int(id, channel_id, target, dur, MakeEaseDesc(ease_type, p0, p1, p2, p3), policy, dt, init_value);
 }
 
 MonoArray* mono_ImAnim_TweenColor(unsigned int id, unsigned int channel_id, float target_r, float target_g, float target_b, float target_a, float dur, int ease_type, float p0, float p1, float p2, float p3, int policy, int color_space, float dt, float init_r, float init_g, float init_b, float init_a)
 {
+	EnsureMonoImAnimContext();
 	ImVec4 result = iam_tween_color(id, channel_id, ImVec4(target_r, target_g, target_b, target_a), dur, MakeEaseDesc(ease_type, p0, p1, p2, p3), policy, color_space, dt, ImVec4(init_r, init_g, init_b, init_a));
 	return MakeFloatArray4(result.x, result.y, result.z, result.w);
 }
