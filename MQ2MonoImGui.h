@@ -41,6 +41,7 @@ float mono_ImGUI_GetCursorScreenPosY();
 void mono_ImGUI_Text(MonoString* text);
 void mono_ImGUI_TextUnformatted(MonoString* text);
 void mono_ImGUI_TextWrapped(MonoString* text);
+void mono_ImGUI_TextDisabled(MonoString* text);
 void mono_ImGUI_PushTextWrapPos(float wrap_local_pos_x);
 void mono_ImGUI_PopTextWrapPos();
 void mono_ImGUI_TextColored(float r, float g, float b, float a, MonoString* text);
@@ -50,8 +51,14 @@ MonoArray* mono_ImGUI_GetItemRectSize();
 
 // Layout helpers
 void mono_ImGUI_Separator();
+void mono_ImGUI_SeparatorText(MonoString* text);
 void mono_ImGUI_SameLine();
 void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing);
+void mono_ImGUI_Spacing();
+void mono_ImGUI_NewLine();
+void mono_ImGUI_Dummy(float width, float height);
+void mono_ImGUI_BeginGroup();
+void mono_ImGUI_EndGroup();
 float mono_ImGUI_GetContentRegionAvailX();
 float mono_ImGUI_GetContentRegionAvailY();
 void mono_ImGUI_SetNextItemWidth(float width);

@@ -171,6 +171,15 @@ void mono_ImGUI_Separator()
 	ImGui::Separator();
 }
 
+void mono_ImGUI_SeparatorText(MonoString* text)
+{
+	if (!text) return;
+	char* cppString = mono_string_to_utf8(text);
+	std::string str(cppString);
+	mono_free(cppString);
+	ImGui::SeparatorText(str.c_str());
+}
+
 void mono_ImGUI_SameLine()
 {
 	ImGui::SameLine();
@@ -179,6 +188,31 @@ void mono_ImGUI_SameLine()
 void mono_ImGUI_SameLineEx(float offset_from_start_x, float spacing)
 {
 	ImGui::SameLine(offset_from_start_x, spacing);
+}
+
+void mono_ImGUI_Spacing()
+{
+	ImGui::Spacing();
+}
+
+void mono_ImGUI_NewLine()
+{
+	ImGui::NewLine();
+}
+
+void mono_ImGUI_Dummy(float width, float height)
+{
+	ImGui::Dummy(ImVec2(width, height));
+}
+
+void mono_ImGUI_BeginGroup()
+{
+	ImGui::BeginGroup();
+}
+
+void mono_ImGUI_EndGroup()
+{
+	ImGui::EndGroup();
 }
 
 void mono_ImGUI_Checkbox_Clear(MonoString* id)
@@ -560,6 +594,14 @@ void mono_ImGUI_TextWrapped(MonoString* text)
 	if (!text) return;
 	char* stext = mono_string_to_utf8(text);
 	ImGui::TextWrapped("%s", stext);
+	mono_free(stext);
+}
+
+void mono_ImGUI_TextDisabled(MonoString* text)
+{
+	if (!text) return;
+	char* stext = mono_string_to_utf8(text);
+	ImGui::TextDisabled("%s", stext);
 	mono_free(stext);
 }
 

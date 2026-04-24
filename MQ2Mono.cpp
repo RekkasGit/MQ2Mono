@@ -215,8 +215,14 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Begin_OpenFlagGet", &mono_ImGUI_Begin_OpenFlagGet);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Text", &mono_ImGUI_Text);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Separator", &mono_ImGUI_Separator);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SeparatorText", &mono_ImGUI_SeparatorText);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SameLine", &mono_ImGUI_SameLine);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SameLineEx", &mono_ImGUI_SameLineEx);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Spacing", &mono_ImGUI_Spacing);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_NewLine", &mono_ImGUI_NewLine);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Dummy", &mono_ImGUI_Dummy);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginGroup", &mono_ImGUI_BeginGroup);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndGroup", &mono_ImGUI_EndGroup);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox", &mono_ImGUI_Checkbox);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox_Clear", &mono_ImGUI_Checkbox_Clear);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_Checkbox_Get", &mono_ImGUI_Checkbox_Get);
@@ -309,6 +315,7 @@ void InitMono()
 
 	// Text wrapping and window sizing
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextWrapped", &mono_ImGUI_TextWrapped);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextDisabled", &mono_ImGUI_TextDisabled);
 	// Expose unformatted text render to avoid printf-style format crashes
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextUnformatted", &mono_ImGUI_TextUnformatted);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_PushTextWrapPos", &mono_ImGUI_PushTextWrapPos);
@@ -3812,6 +3819,5 @@ static void mono_GetSpawns()
 
 }
 #pragma endregion Exposed methods to plugin
-
 
 
