@@ -223,6 +223,38 @@ float mono_ImGUI_GetItemRectMaxY();
 MonoArray* mono_ImGUI_GetItemRectMin();
 uint32_t mono_ImGUI_GetColorU32(int imguiCol, float alpha_mul);
 
+// TextFilter — stored per-domain by string ID
+void mono_ImGUI_TextFilter_Create(MonoString* id, MonoString* defaultFilter);
+bool mono_ImGUI_TextFilter_Draw(MonoString* id, MonoString* label, float width);
+bool mono_ImGUI_TextFilter_PassFilter(MonoString* id, MonoString* text);
+void mono_ImGUI_TextFilter_Clear(MonoString* id);
+bool mono_ImGUI_TextFilter_IsActive(MonoString* id);
+
+// ListClipper — stored per-domain by string ID
+void mono_ImGUI_ListClipper_Begin(MonoString* id, int itemsCount, float itemsHeight);
+bool mono_ImGUI_ListClipper_Step(MonoString* id);
+void mono_ImGUI_ListClipper_End(MonoString* id);
+int mono_ImGUI_ListClipper_GetDisplayStart(MonoString* id);
+int mono_ImGUI_ListClipper_GetDisplayEnd(MonoString* id);
+
+// Table sorting
+bool mono_ImGUI_TableGetSortSpecs_HasSpecs();
+int mono_ImGUI_TableGetSortSpecs_GetColumnIndex(int specIndex);
+int mono_ImGUI_TableGetSortSpecs_GetSortDirection(int specIndex);
+int mono_ImGUI_TableGetSortSpecs_GetSpecsCount();
+void mono_ImGUI_TableGetSortSpecs_SetDirty(bool dirty);
+void mono_ImGUI_TableSetupScrollFreeze(int cols, int rows);
+
+// Additional utility functions
+void mono_ImGUI_SetTooltip(MonoString* text);
+void mono_ImGUI_BeginDisabled(bool disabled);
+void mono_ImGUI_EndDisabled();
+void mono_ImGUI_SetNextItemOpen(bool isOpen, int cond);
+void mono_ImGUI_SetScrollHereY(float centerYRatio);
+float mono_ImGUI_GetScrollY();
+float mono_ImGUI_GetScrollMaxY();
+void mono_ImGUI_SetScrollY(float scrollY);
+
 // Texture creation from raw data (placeholders)
 void* mono_CreateTextureFromData(const uint8_t* data, int width, int height, int channels);
 void mono_DestroyTexture(void* textureId);

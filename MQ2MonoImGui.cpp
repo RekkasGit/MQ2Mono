@@ -1786,6 +1786,319 @@ uint32_t mono_ImGUI_GetColorU32(int imguiCol, float alpha_mul)
     return ImGui::GetColorU32((ImGuiCol)imguiCol, alpha_mul);
 }
 
+// ============================================================================
+// TextFilter — per-domain ImGuiTextFilter instances
+// ============================================================================
+
+void mono_ImGUI_TextFilter_Create(MonoString* id, MonoString* defaultFilter)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	char* filterStr = mono_string_to_utf8(defaultFilter);
+	std::string filterDefault(filterStr);
+	mono_free(filterStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		domainInfo.m_IMGUI_TextFilters[idKey] = ImGuiTextFilter(filterDefault.c_str());
+	}
+}
+
+bool mono_ImGUI_TextFilter_Draw(MonoString* id, MonoString* label, float width)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	char* labelStr = mono_string_to_utf8(label);
+	std::string labelStrCpp(labelStr);
+	mono_free(labelStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_TextFilters.find(idKey);
+		if (it != domainInfo.m_IMGUI_TextFilters.end())
+		{
+			return it->second.Draw(labelStrCpp.c_str(), width);
+		}
+	}
+	return false;
+}
+
+bool mono_ImGUI_TextFilter_PassFilter(MonoString* id, MonoString* text)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	char* textStr = mono_string_to_utf8(text);
+	std::string textCpp(textStr);
+	mono_free(textStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_TextFilters.find(idKey);
+		if (it != domainInfo.m_IMGUI_TextFilters.end())
+		{
+			return it->second.PassFilter(textCpp.c_str());
+		}
+	}
+	return true; // no filter = pass everything
+}
+
+void mono_ImGUI_TextFilter_Clear(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_TextFilters.find(idKey);
+		if (it != domainInfo.m_IMGUI_TextFilters.end())
+		{
+			it->second.Clear();
+		}
+	}
+}
+
+bool mono_ImGUI_TextFilter_IsActive(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_TextFilters.find(idKey);
+		if (it != domainInfo.m_IMGUI_TextFilters.end())
+		{
+			return it->second.IsActive();
+		}
+	}
+	return false;
+}
+
+// ============================================================================
+// ListClipper — per-domain ImGuiListClipper instances
+// ============================================================================
+
+void mono_ImGUI_ListClipper_Begin(MonoString* id, int itemsCount, float itemsHeight)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		domainInfo.m_IMGUI_ListClippers[idKey] = ImGuiListClipper();
+		domainInfo.m_IMGUI_ListClippers[idKey].Begin(itemsCount, itemsHeight);
+	}
+}
+
+bool mono_ImGUI_ListClipper_Step(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_ListClippers.find(idKey);
+		if (it != domainInfo.m_IMGUI_ListClippers.end())
+		{
+			return it->second.Step();
+		}
+	}
+	return false;
+}
+
+void mono_ImGUI_ListClipper_End(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_ListClippers.find(idKey);
+		if (it != domainInfo.m_IMGUI_ListClippers.end())
+		{
+			it->second.End();
+			domainInfo.m_IMGUI_ListClippers.erase(it);
+		}
+	}
+}
+
+int mono_ImGUI_ListClipper_GetDisplayStart(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_ListClippers.find(idKey);
+		if (it != domainInfo.m_IMGUI_ListClippers.end())
+		{
+			return it->second.DisplayStart;
+		}
+	}
+	return 0;
+}
+
+int mono_ImGUI_ListClipper_GetDisplayEnd(MonoString* id)
+{
+	char* idStr = mono_string_to_utf8(id);
+	std::string idKey(idStr);
+	mono_free(idStr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	if (currentDomain)
+	{
+		std::string key = monoAppDomainPtrToString[currentDomain];
+		auto& domainInfo = monoAppDomains[key];
+		auto it = domainInfo.m_IMGUI_ListClippers.find(idKey);
+		if (it != domainInfo.m_IMGUI_ListClippers.end())
+		{
+			return it->second.DisplayEnd;
+		}
+	}
+	return 0;
+}
+
+// ============================================================================
+// Table sorting — TableGetSortSpecs + TableSetupScrollFreeze
+// ============================================================================
+
+static ImGuiTableSortSpecs* _lastSortSpecs = nullptr;
+
+bool mono_ImGUI_TableGetSortSpecs_HasSpecs()
+{
+	_lastSortSpecs = ImGui::TableGetSortSpecs();
+	return _lastSortSpecs != nullptr;
+}
+
+int mono_ImGUI_TableGetSortSpecs_GetColumnIndex(int specIndex)
+{
+	if (_lastSortSpecs && specIndex >= 0 && specIndex < _lastSortSpecs->SpecsCount)
+	{
+		return _lastSortSpecs->Specs[specIndex].ColumnIndex;
+	}
+	return -1;
+}
+
+int mono_ImGUI_TableGetSortSpecs_GetSortDirection(int specIndex)
+{
+	if (_lastSortSpecs && specIndex >= 0 && specIndex < _lastSortSpecs->SpecsCount)
+	{
+		return (int)_lastSortSpecs->Specs[specIndex].SortDirection;
+	}
+	return 0;
+}
+
+int mono_ImGUI_TableGetSortSpecs_GetSpecsCount()
+{
+	if (_lastSortSpecs)
+	{
+		return _lastSortSpecs->SpecsCount;
+	}
+	return 0;
+}
+
+void mono_ImGUI_TableGetSortSpecs_SetDirty(bool dirty)
+{
+	if (_lastSortSpecs)
+	{
+		_lastSortSpecs->SpecsDirty = dirty;
+	}
+}
+
+void mono_ImGUI_TableSetupScrollFreeze(int cols, int rows)
+{
+	ImGui::TableSetupScrollFreeze(cols, rows);
+}
+
+// ============================================================================
+// Additional utility functions
+// ============================================================================
+
+void mono_ImGUI_SetTooltip(MonoString* text)
+{
+	char* ctext = mono_string_to_utf8(text);
+	std::string str(ctext);
+	mono_free(ctext);
+	ImGui::SetTooltip("%s", str.c_str());
+}
+
+void mono_ImGUI_BeginDisabled(bool disabled)
+{
+	ImGui::BeginDisabled(disabled);
+}
+
+void mono_ImGUI_EndDisabled()
+{
+	ImGui::EndDisabled();
+}
+
+void mono_ImGUI_SetNextItemOpen(bool isOpen, int cond)
+{
+	ImGui::SetNextItemOpen(isOpen, (ImGuiCond)cond);
+}
+
+void mono_ImGUI_SetScrollHereY(float centerYRatio)
+{
+	ImGui::SetScrollHereY(centerYRatio);
+}
+
+float mono_ImGUI_GetScrollY()
+{
+	return ImGui::GetScrollY();
+}
+
+float mono_ImGUI_GetScrollMaxY()
+{
+	return ImGui::GetScrollMaxY();
+}
+
+void mono_ImGUI_SetScrollY(float scrollY)
+{
+	ImGui::SetScrollY(scrollY);
+}
+
+// ============================================================================
+// Texture creation from raw data (placeholders)
+// ============================================================================
+
 void* mono_CreateTextureFromData(const uint8_t* data, int width, int height, int channels)
 {
 	return nullptr;

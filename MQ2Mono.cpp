@@ -22,7 +22,7 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.422);
+PLUGIN_VERSION(0.425);
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -429,6 +429,38 @@ void InitMono()
 	// Texture creation from raw data
 	mono_add_internal_call("MonoCore.E3ImGUI::mq_CreateTextureFromData", &mono_CreateTextureFromData);
 	mono_add_internal_call("MonoCore.E3ImGUI::mq_DestroyTexture", &mono_DestroyTexture);
+
+	// TextFilter
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextFilter_Create", &mono_ImGUI_TextFilter_Create);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextFilter_Draw", &mono_ImGUI_TextFilter_Draw);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextFilter_PassFilter", &mono_ImGUI_TextFilter_PassFilter);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextFilter_Clear", &mono_ImGUI_TextFilter_Clear);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TextFilter_IsActive", &mono_ImGUI_TextFilter_IsActive);
+
+	// ListClipper
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ListClipper_Begin", &mono_ImGUI_ListClipper_Begin);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ListClipper_Step", &mono_ImGUI_ListClipper_Step);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ListClipper_End", &mono_ImGUI_ListClipper_End);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ListClipper_GetDisplayStart", &mono_ImGUI_ListClipper_GetDisplayStart);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_ListClipper_GetDisplayEnd", &mono_ImGUI_ListClipper_GetDisplayEnd);
+
+	// Table sorting
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetSortSpecs_HasSpecs", &mono_ImGUI_TableGetSortSpecs_HasSpecs);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetSortSpecs_GetColumnIndex", &mono_ImGUI_TableGetSortSpecs_GetColumnIndex);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetSortSpecs_GetSortDirection", &mono_ImGUI_TableGetSortSpecs_GetSortDirection);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetSortSpecs_GetSpecsCount", &mono_ImGUI_TableGetSortSpecs_GetSpecsCount);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableGetSortSpecs_SetDirty", &mono_ImGUI_TableGetSortSpecs_SetDirty);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_TableSetupScrollFreeze", &mono_ImGUI_TableSetupScrollFreeze);
+
+	// Additional utility functions
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetTooltip", &mono_ImGUI_SetTooltip);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_BeginDisabled", &mono_ImGUI_BeginDisabled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_EndDisabled", &mono_ImGUI_EndDisabled);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetNextItemOpen", &mono_ImGUI_SetNextItemOpen);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetScrollHereY", &mono_ImGUI_SetScrollHereY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetScrollY", &mono_ImGUI_GetScrollY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetScrollMaxY", &mono_ImGUI_GetScrollMaxY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetScrollY", &mono_ImGUI_SetScrollY);
 
 	// ImAnim wrappers
 	mono_add_internal_call("MonoCore.E3ImAnim::imanim_UpdateBeginFrame", &mono_ImAnim_UpdateBeginFrame);

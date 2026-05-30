@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mq/Plugin.h>
+#include <imgui/imgui.h>
 #include <mono/metadata/assembly.h>
 #include <mono/jit/jit.h>
 #include <map>
@@ -41,6 +42,8 @@ struct monoAppDomainInfo
 	std::map<std::string, std::array<float, 4>> m_IMGUI_InputColorValues;
 	std::map<std::string, int> m_IMGUI_InputIntValues;
 	std::map<std::string, bool> m_IMGUI_RadioButtonValues;
+	std::map<std::string, ImGuiTextFilter> m_IMGUI_TextFilters;
+	std::map<std::string, ImGuiListClipper> m_IMGUI_ListClippers;
 	std::string m_CurrentWindow;
 	bool m_IMGUI_Open = true;
 	int m_delayTime = 0; // amount of time in milliseconds that was set by C#
