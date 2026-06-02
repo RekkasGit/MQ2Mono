@@ -461,6 +461,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetScrollY", &mono_ImGUI_GetScrollY);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetScrollMaxY", &mono_ImGUI_GetScrollMaxY);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetScrollY", &mono_ImGUI_SetScrollY);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetWindowCollapsed", &mono_ImGUI_SetWindowCollapsed);
 
 	// ImAnim wrappers
 	mono_add_internal_call("MonoCore.E3ImAnim::imanim_UpdateBeginFrame", &mono_ImAnim_UpdateBeginFrame);

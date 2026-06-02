@@ -2095,6 +2095,14 @@ void mono_ImGUI_SetScrollY(float scrollY)
 	ImGui::SetScrollY(scrollY);
 }
 
+void mono_ImGUI_SetWindowCollapsed(MonoString* name, bool collapsed, int cond)
+{
+	char* cppString = mono_string_to_utf8(name);
+	std::string str(cppString);
+	mono_free(cppString);
+	ImGui::SetWindowCollapsed(str.c_str(), collapsed, (ImGuiCond)cond);
+}
+
 // ============================================================================
 // Texture creation from raw data (placeholders)
 // ============================================================================
