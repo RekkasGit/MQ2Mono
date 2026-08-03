@@ -599,9 +599,22 @@ float mono_ImGUI_GetWindowHeight()
 	return ImGui::GetWindowHeight();
 }
 
+void mono_ImGUI_SetClipboardText(MonoString* text)
+{
+	char* cppString = mono_string_to_utf8(text);
+	std::string str(cppString);
+	mono_free(cppString);
+	ImGui::SetClipboardText(str.c_str());
+}
+
 bool mono_ImGUI_IsMouseClicked(int button)
 {
+	
 	return ImGui::IsMouseClicked(button);
+}
+bool mono_ImGUI_IsItemClicked(int button)
+{
+	return ImGui::IsItemClicked(button);
 }
 
 void mono_ImGUI_PushItemWidth(float width)

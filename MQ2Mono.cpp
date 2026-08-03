@@ -19,7 +19,8 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.422);
+PLUGIN_VERSION(0.424);
+std::string version = "0.424";
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -70,14 +71,14 @@ unsigned char* mono_GetSpawns3Buffer(int* bufferLength);
 unsigned char* mono_GetSpawns3_Delta(int* bufferLength);
 //not sure if realy needed anymore but eh, its there
 bool mono_GetRunNextCommand();
-
+MonoArray* mono_GetSpellIds(MonoString* spellName);
 //used to get the currently focused window element
 MonoString* mono_GetFocusedWindowName();
 //used to get the currently focused window element
 MonoString* mono_GetHoverWindowName();
 
 MonoString* mono_GetMQ2MonoVersion();
-std::string version = "0.422";
+
 
 /// <summary>
 /// Main data structure that has information on each individual app domain that we create and informatoin
@@ -174,8 +175,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.Core::mq_GetXtargetInfo", &mono_GetXtargetInfo);
 	mono_add_internal_call("MonoCore.Core::mq_GetAvailableAAIds", &mono_GetAvailableAAIds);
 	mono_add_internal_call("MonoCore.Core::mq_GetAvilableDiscIds", &mono_GetAvilableDiscIds);
-
-	
+	mono_add_internal_call("MonoCore.Core::mq_GetSpellIds", &mono_GetSpellIds);
 	
 	mono_add_internal_call("MonoCore.Core::mq_GetRunNextCommand", &mono_GetRunNextCommand);
 	mono_add_internal_call("MonoCore.Core::mq_GetFocusedWindowName", &mono_GetFocusedWindowName);
@@ -318,6 +318,8 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsItemClicked", &mono_ImGUI_IsItemClicked);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetClipboardText", &mono_ImGUI_SetClipboardText);
 
 	// Input int
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_InputInt", &mono_ImGUI_InputInt);
@@ -510,6 +512,7 @@ bool InitAppDomain(std::string appDomainName)
 	MonoDomain* appDomain;
 	appDomain = mono_domain_create_appdomain((char*)appDomainName.c_str(), nullptr);
 
+	
 	//core.dll information so we can bind to it
 	MonoAssembly* csharpAssembly;
 	MonoImage* coreAssemblyImage;
@@ -538,6 +541,7 @@ bool InitAppDomain(std::string appDomainName)
 	std::string fileName = (appDomainName + ".dll");
 	std::string assemblypath = (monoDir + "\\macros\\" + appDomainName + "\\");
 
+
 	bool filepathExists = std::filesystem::exists(assemblypath + fileName);
 
 	if (!filepathExists)
@@ -555,6 +559,8 @@ bool InitAppDomain(std::string appDomainName)
 		fs::create_directory(shadowDirectory); // create src folder
 	}
 
+
+
 	//copy it to a new directory
 	try
 	{
@@ -567,6 +573,7 @@ bool InitAppDomain(std::string appDomainName)
 		return false;
 	}
 
+	mono_domain_set_config(appDomain, shadowDirectory.c_str(), "e3.config");
 
 	csharpAssembly = mono_domain_assembly_open(appDomain, (shadowDirectory + fileName).c_str());
 
@@ -1601,6 +1608,40 @@ static double mono_Memory_GetPageFileSize()
 	CloseHandle(hProcess);
 	return returnValue;
 }
+ci_unordered::multimap<std::string_view, EQ_Spell*> _spellNameMap;
+MonoArray* mono_GetSpellIds(MonoString* spellName)
+{
+	char* spellNamePtr = mono_string_to_utf8(spellName);
+	std::string spellNameStr(spellNamePtr);
+	mono_free(spellNamePtr);
+
+	MonoDomain* currentDomain = mono_domain_get();
+	MonoClass* uint32classs = mono_get_int32_class();
+
+	if (_spellNameMap.size() == 0)
+	{
+		for (EQ_Spell* pSpell : pSpellMgr->Spells)
+		{
+			if (!pSpell || !pSpell->Name[0])
+				continue;
+
+			_spellNameMap.emplace(pSpell->Name, pSpell);
+		}
+	}
+	int arraySize = _spellNameMap.count(spellNameStr);
+	MonoArray* monoArray = mono_array_new(currentDomain, uint32classs, arraySize);
+	std::string key = monoAppDomainPtrToString[currentDomain];
+	auto& domainInfo = monoAppDomains[key];
+	auto range = _spellNameMap.equal_range(spellNameStr);
+	int count = 0;
+	for (auto it = range.first; it != range.second; ++it) {
+		mono_array_set(monoArray, int32_t, count, it->second->ID);
+		count++;
+	}
+	return monoArray;
+}
+
+
 static void mono_Echo(MonoString* string)
 {
 	char* cppString = mono_string_to_utf8(string);

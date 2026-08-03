@@ -63,7 +63,9 @@ bool mono_ImGUI_IsWindowHovered();
 float mono_ImGUI_GetWindowWidth();
 float mono_ImGUI_GetWindowHeight();
 bool mono_ImGUI_IsMouseClicked(int button);
+bool mono_ImGUI_IsItemClicked(int button);
 void mono_ImGUI_SetNextWindowSizeConstraints(float min_w, float min_h, float max_w, float max_h);
+void mono_ImGUI_SetClipboardText(MonoString* text);
 
 // Widgets
 bool mono_ImGUI_Checkbox(MonoString* name, bool defaultValue);
