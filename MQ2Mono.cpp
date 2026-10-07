@@ -19,8 +19,8 @@
 PreSetup("MQ2Mono");
 
 // ImGui wrappers moved to MQ2MonoImGui.h / MQ2MonoImGui.cpp
-PLUGIN_VERSION(0.424);
-std::string version = "0.424";
+PLUGIN_VERSION(0.425);
+std::string version = "0.425";
 /**
  * Avoid Globals if at all possible, since they persist throughout your program.
  * But if you must have them, here is the place to put them.
@@ -318,6 +318,7 @@ void InitMono()
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowWidth", &mono_ImGUI_GetWindowWidth);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_GetWindowHeight", &mono_ImGUI_GetWindowHeight);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsMouseClicked", &mono_ImGUI_IsMouseClicked);
+	mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsMouseDoubleClicked", &mono_ImGUI_IsMouseDoubleClicked);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_IsItemClicked", &mono_ImGUI_IsItemClicked);
 	mono_add_internal_call("MonoCore.E3ImGUI::imgui_SetClipboardText", &mono_ImGUI_SetClipboardText);
 

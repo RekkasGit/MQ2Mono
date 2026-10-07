@@ -612,6 +612,13 @@ bool mono_ImGUI_IsMouseClicked(int button)
 	
 	return ImGui::IsMouseClicked(button);
 }
+
+bool mono_ImGUI_IsMouseDoubleClicked(int button)
+{
+	return ImGui::IsMouseDoubleClicked(button);
+}
+
+
 bool mono_ImGUI_IsItemClicked(int button)
 {
 	return ImGui::IsItemClicked(button);
