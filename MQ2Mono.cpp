@@ -2249,7 +2249,13 @@ static unsigned char* mono_GetBuffData(int* bufferLength)
 			pBuffer += sizeof(ID);
 			bufferSize += sizeof(ID);
 			//repeat for each type
+
+#if defined(ROF2EMU)
 			int casterID = effect.CasterID;
+#else
+			int casterID = effect.CasterGuid;
+#endif
+			
 			memcpy(pBuffer, &casterID, sizeof(casterID));
 			pBuffer += sizeof(casterID);
 			bufferSize += sizeof(casterID);
@@ -2410,7 +2416,11 @@ static unsigned char* mono_GetBuffData(int* bufferLength)
 			pBuffer += sizeof(ID);
 			bufferSize += sizeof(ID);
 			//repat for each type
+#if defined(ROF2EMU)
 			int casterID = effect.CasterID;
+#else
+			int casterID = effect.CasterGuid;
+#endif
 			memcpy(pBuffer, &casterID, sizeof(casterID));
 			pBuffer += sizeof(casterID);
 			bufferSize += sizeof(casterID);

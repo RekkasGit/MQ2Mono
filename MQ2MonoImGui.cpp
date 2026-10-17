@@ -1113,7 +1113,12 @@ void mono_ImGUI_EndTooltip()
 
 void mono_ImGUI_Image(void* textureId, float width, float height)
 {
+#if defined(ROF2EMU)
 	ImGui::Image(textureId, ImVec2(width, height));
+#else
+	ImGui::Image((ImTextureRef)textureId, ImVec2(width, height));
+#endif
+
 }
 
 void* mono_ImGUI_AddFontFromFileTTF(MonoString* path, float size_pixels, const uint16_t* ranges, int range_count, bool merge_mode)
